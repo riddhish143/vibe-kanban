@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ArrowLeftIcon,
+  DownloadSimpleIcon,
   FunnelIcon,
   MagnifyingGlassIcon,
   PlusIcon,
@@ -95,6 +96,7 @@ interface KanbanFilterBarProps<
   onShowWorkspacesChange: (show: boolean) => void;
   onClearFilters: () => void;
   onCreateIssue: () => void;
+  onImportIssues: () => void;
   shouldAnimateCreateButton: boolean;
   isMobile?: boolean;
   renderFiltersDialog?: (
@@ -129,6 +131,7 @@ export function KanbanFilterBar<
   onShowWorkspacesChange,
   onClearFilters,
   onCreateIssue,
+  onImportIssues,
   shouldAnimateCreateButton,
   isMobile,
   renderFiltersDialog,
@@ -236,27 +239,53 @@ export function KanbanFilterBar<
           )}
 
           {isMobile ? (
-            <button
-              type="button"
-              onClick={() => onCreateIssue()}
-              className={cn(
-                'rounded-sm p-half bg-brand hover:bg-brand-hover text-on-brand transition-colors',
-                shouldAnimateCreateButton && 'create-issue-attention'
-              )}
-              aria-label={t('kanban.newIssue', 'New issue')}
-            >
-              <PlusIcon className="size-icon-sm" weight="bold" />
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() => onImportIssues()}
+                className="flex items-center gap-half rounded-sm px-base py-half bg-panel hover:bg-secondary text-normal transition-colors"
+              >
+                <DownloadSimpleIcon className="size-icon-sm" weight="bold" />
+                <span className="text-sm">
+                  {t(
+                    'kanban.importIssuesFromRepo',
+                    'Import Issues from Repo'
+                  )}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => onCreateIssue()}
+                className={cn(
+                  'rounded-sm p-half bg-brand hover:bg-brand-hover text-on-brand transition-colors',
+                  shouldAnimateCreateButton && 'create-issue-attention'
+                )}
+                aria-label={t('kanban.newIssue', 'New issue')}
+              >
+                <PlusIcon className="size-icon-sm" weight="bold" />
+              </button>
+            </>
           ) : (
-            <PrimaryButton
-              variant="secondary"
-              value={t('kanban.newIssue', 'New issue')}
-              actionIcon={PlusIcon}
-              onClick={() => onCreateIssue()}
-              className={cn(
-                shouldAnimateCreateButton && 'create-issue-attention'
-              )}
-            />
+            <>
+              <PrimaryButton
+                variant="tertiary"
+                value={t(
+                  'kanban.importIssuesFromRepo',
+                  'Import Issues from Repo'
+                )}
+                actionIcon={DownloadSimpleIcon}
+                onClick={() => onImportIssues()}
+              />
+              <PrimaryButton
+                variant="secondary"
+                value={t('kanban.newIssue', 'New issue')}
+                actionIcon={PlusIcon}
+                onClick={() => onCreateIssue()}
+                className={cn(
+                  shouldAnimateCreateButton && 'create-issue-attention'
+                )}
+              />
+            </>
           )}
         </div>
       )}

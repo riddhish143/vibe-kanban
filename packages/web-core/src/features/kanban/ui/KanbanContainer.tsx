@@ -55,6 +55,8 @@ import { ViewNavTabs } from '@vibe/ui/components/ViewNavTabs';
 import { IssueListView } from '@vibe/ui/components/IssueListView';
 import { CommandBarDialog } from '@/shared/dialogs/command-bar/CommandBarDialog';
 import { KanbanFiltersDialog } from '@/shared/dialogs/kanban/KanbanFiltersDialog';
+import { ImportGitHubIssuesDialog } from '@/shared/dialogs/kanban/ImportGitHubIssuesDialog';
+import { Button } from '@vibe/ui/components/Button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -432,6 +434,7 @@ export function KanbanContainer() {
   // Track items as arrays of IDs grouped by status
   const [items, setItems] = useState<Record<string, string[]>>({});
   const [isFiltersDialogOpen, setIsFiltersDialogOpen] = useState(false);
+  const [selectedIssueIds, setSelectedIssueIds] = useState<string[]>([]);
 
   // Sync items from filtered issues when they change
   useEffect(() => {
@@ -491,6 +494,15 @@ export function KanbanContainer() {
     }
     return map;
   }, [issues]);
+
+  const visibleKanbanIssueIds = useMemo(() => {
+    return visibleStatuses.flatMap((status) => items[status.id] ?? []);
+  }, [items, visibleStatuses]);
+
+  const selectedIssueIdSet = useMemo(
+    () => new Set(selectedIssueIds),
+    [selectedIssueIds]
+  );
 
   // Create a lookup map for issue assignees (issue_id -> OrganizationMemberWithProfile[])
   const issueAssigneesMap = useMemo(() => {
@@ -722,6 +734,55 @@ export function KanbanContainer() {
     [createAssigneeIds, defaultCreateStatusId, startCreate]
   );
 
+  const handleIssueSelectionChange = useCallback(
+    (issueId: string, selected: boolean) => {
+      setSelectedIssueIds((current) => {
+        if (selected) {
+          return current.includes(issueId) ? current : [...current, issueId];
+        }
+
+        return current.filter((id) => id !== issueId);
+      });
+    },
+    []
+  );
+
+  const handleClearSelection = useCallback(() => {
+    setSelectedIssueIds([]);
+  }, []);
+
+  const handleSelectAllVisibleIssues = useCallback(() => {
+    setSelectedIssueIds(visibleKanbanIssueIds);
+  }, [visibleKanbanIssueIds]);
+
+  const handleDeleteSelectedIssues = useCallback(() => {
+    if (selectedIssueIds.length === 0) {
+      return;
+    }
+
+    void executeAction(
+      Actions.DeleteIssue,
+      undefined,
+      projectId,
+      selectedIssueIds
+    );
+  }, [executeAction, projectId, selectedIssueIds]);
+
+  const handleImportIssues = useCallback(() => {
+    void ImportGitHubIssuesDialog.show({ projectId });
+  }, [projectId]);
+
+  useEffect(() => {
+    if (kanbanViewMode !== 'kanban') {
+      setSelectedIssueIds([]);
+      return;
+    }
+
+    setSelectedIssueIds((current) =>
+      current.filter((issueId) => visibleKanbanIssueIds.includes(issueId))
+    );
+  }, [kanbanViewMode, visibleKanbanIssueIds]);
+
   // Inline editing callbacks for kanban cards
   const handleCardPriorityClick = useCallback(
     (issueId: string) => {
@@ -861,11 +922,45 @@ export function KanbanContainer() {
             onShowWorkspacesChange={setShowWorkspaces}
             onClearFilters={clearKanbanFilters}
             onCreateIssue={handleAddTask}
+            onImportIssues={handleImportIssues}
             shouldAnimateCreateButton={shouldAnimateCreateButton}
             renderFiltersDialog={(props) => <KanbanFiltersDialog {...props} />}
             isMobile={isMobile}
           />
         </div>
+
+        {(selectedIssueIds.length > 0 || visibleKanbanIssueIds.length > 0) && (
+          <div className="flex items-center gap-2 rounded-sm border border-input bg-secondary px-base py-half">
+            <span className="text-sm text-normal">
+              {selectedIssueIds.length} selected
+            </span>
+            {selectedIssueIds.length < visibleKanbanIssueIds.length && (
+              <Button
+                variant="outline"
+                size="xs"
+                onClick={handleSelectAllVisibleIssues}
+              >
+                Select All
+              </Button>
+            )}
+            <Button
+              variant="destructive"
+              size="xs"
+              onClick={handleDeleteSelectedIssues}
+              disabled={selectedIssueIds.length === 0}
+            >
+              Delete Selected
+            </Button>
+            <Button
+              variant="ghost"
+              size="xs"
+              onClick={handleClearSelection}
+              disabled={selectedIssueIds.length === 0}
+            >
+              Clear Selection
+            </Button>
+          </div>
+        )}
       </div>
 
       {kanbanViewMode === 'kanban' ? (
@@ -957,6 +1052,10 @@ export function KanbanContainer() {
                               }}
                               onMoreActionsClick={() =>
                                 handleCardMoreActionsClick(issue.id)
+                              }
+                              isSelected={selectedIssueIdSet.has(issue.id)}
+                              onSelectionChange={(selected) =>
+                                handleIssueSelectionChange(issue.id, selected)
                               }
                               tagEditProps={{
                                 allTags: tags,

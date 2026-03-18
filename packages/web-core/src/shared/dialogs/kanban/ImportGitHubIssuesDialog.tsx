@@ -1,0 +1,220 @@
+import { useEffect, useMemo, useState } from 'react';
+import { create, useModal } from '@ebay/nice-modal-react';
+import { Loader2, CheckCircle2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { Button } from '@vibe/ui/components/Button';
+import { Input } from '@vibe/ui/components/Input';
+import { Label } from '@vibe/ui/components/Label';
+import { Alert, AlertDescription, AlertTitle } from '@vibe/ui/components/Alert';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@vibe/ui/components/KeyboardDialog';
+import { defineModal, getErrorMessage } from '@/shared/lib/modals';
+import { remoteProjectsApi } from '@/shared/lib/api';
+import type { ImportGitHubIssuesResponse } from 'shared/types';
+
+export interface ImportGitHubIssuesDialogProps {
+  projectId: string;
+}
+
+export type ImportGitHubIssuesDialogResult = ImportGitHubIssuesResponse | null;
+
+function validateGitHubRepoUrl(url: string): string | null {
+  try {
+    const parsed = new URL(url.trim());
+    if (parsed.hostname !== 'github.com') {
+      return 'Only github.com repository URLs are supported.';
+    }
+
+    const parts = parsed.pathname.split('/').filter(Boolean);
+    if (parts.length < 2 || !parts[0] || !parts[1]) {
+      return 'Enter a valid GitHub repository URL.';
+    }
+
+    return null;
+  } catch {
+    return 'Enter a valid GitHub repository URL.';
+  }
+}
+
+const ImportGitHubIssuesDialogImpl = create<ImportGitHubIssuesDialogProps>(
+  ({ projectId }) => {
+    const modal = useModal();
+    const { t } = useTranslation('common');
+    const [repositoryUrl, setRepositoryUrl] = useState('');
+    const [error, setError] = useState<string | null>(null);
+    const [result, setResult] = useState<ImportGitHubIssuesResponse | null>(
+      null
+    );
+    const [isImporting, setIsImporting] = useState(false);
+
+    useEffect(() => {
+      if (!modal.visible) {
+        return;
+      }
+
+      setRepositoryUrl('');
+      setError(null);
+      setResult(null);
+      setIsImporting(false);
+    }, [modal.visible]);
+
+    const validationError = useMemo(() => {
+      if (!repositoryUrl.trim()) {
+        return null;
+      }
+
+      return validateGitHubRepoUrl(repositoryUrl);
+    }, [repositoryUrl]);
+
+    const handleClose = () => {
+      modal.resolve(result);
+      modal.hide();
+    };
+
+    const handleSubmit = async () => {
+      const nextError = validateGitHubRepoUrl(repositoryUrl);
+      if (nextError) {
+        setError(nextError);
+        return;
+      }
+
+      setIsImporting(true);
+      setError(null);
+
+      try {
+        const response = await remoteProjectsApi.importGitHubIssues({
+          project_id: projectId,
+          repository_url: repositoryUrl.trim(),
+        });
+        setResult(response);
+      } catch (err) {
+        setError(getErrorMessage(err));
+      } finally {
+        setIsImporting(false);
+      }
+    };
+
+    return (
+      <Dialog
+        open={modal.visible}
+        onOpenChange={(open) => !open && handleClose()}
+      >
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              {t('kanban.importIssuesFromRepo', 'Import Issues from Repo')}
+            </DialogTitle>
+            <DialogDescription>
+              {t(
+                'kanban.importIssuesFromRepoDescription',
+                'Paste a GitHub repository URL to import its open issues into this board.'
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="github-repository-url">
+                {t('kanban.repositoryLink', 'Repository link')}
+              </Label>
+              <Input
+                id="github-repository-url"
+                value={repositoryUrl}
+                onChange={(event) => {
+                  setRepositoryUrl(event.target.value);
+                  setError(null);
+                }}
+                placeholder={t(
+                  'kanban.importIssuesPlaceholder',
+                  'Paste your repository link here (e.g., GitHub repo URL)'
+                )}
+                disabled={isImporting}
+                autoFocus
+                onCommandEnter={(event) => {
+                  event.preventDefault();
+                  void handleSubmit();
+                }}
+              />
+              {validationError && (
+                <p className="text-sm text-destructive">{validationError}</p>
+              )}
+            </div>
+
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            {result && (
+              <Alert variant="success">
+                <CheckCircle2 className="h-4 w-4" />
+                <AlertTitle>
+                  {t('kanban.importComplete', 'Import complete')}
+                </AlertTitle>
+                <AlertDescription className="space-y-2">
+                  <p>
+                    {result.created_count} created, {result.skipped_count}{' '}
+                    skipped, {result.failed_count} failed.
+                  </p>
+                  {result.failures.length > 0 && (
+                    <div className="max-h-40 overflow-y-auto space-y-1 text-xs">
+                      {result.failures.map((failure) => (
+                        <p
+                          key={`${failure.github_issue_number}-${failure.message}`}
+                        >
+                          #{failure.github_issue_number} {failure.title}:{' '}
+                          {failure.message}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={handleClose}
+              disabled={isImporting}
+            >
+              {result
+                ? t('buttons.close', 'Close')
+                : t('buttons.cancel', 'Cancel')}
+            </Button>
+            {!result && (
+              <Button
+                onClick={() => void handleSubmit()}
+                disabled={
+                  !repositoryUrl.trim() || !!validationError || isImporting
+                }
+              >
+                {isImporting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {t('kanban.importingIssues', 'Importing...')}
+                  </>
+                ) : (
+                  t('kanban.importIssuesAction', 'Import Issues')
+                )}
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+);
+
+export const ImportGitHubIssuesDialog = defineModal<
+  ImportGitHubIssuesDialogProps,
+  ImportGitHubIssuesDialogResult
+>(ImportGitHubIssuesDialogImpl);

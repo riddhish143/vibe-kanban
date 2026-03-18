@@ -15,6 +15,7 @@ pub mod attachments;
 pub mod events;
 pub mod execution_processes;
 pub mod frontend;
+pub mod github_import;
 pub mod health;
 pub mod migration;
 pub mod oauth;
@@ -42,6 +43,7 @@ pub fn router(deployment: DeploymentImpl) -> IntoMakeService<Router> {
         .merge(oauth::router())
         .merge(organizations::router())
         .merge(filesystem::router())
+        .merge(github_import::router())
         .merge(repo::router())
         .merge(events::router(&deployment))
         .merge(approvals::router())

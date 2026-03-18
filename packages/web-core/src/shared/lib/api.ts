@@ -94,6 +94,8 @@ import {
   RelayPairedClient,
   ListRelayPairedClientsResponse,
   RemoveRelayPairedClientResponse,
+  ImportGitHubIssuesRequest,
+  ImportGitHubIssuesResponse,
 } from 'shared/types';
 import type { Project as RemoteProject } from 'shared/remote-types';
 import type { WorkspaceWithSession } from '@/shared/types/attempt';
@@ -1363,6 +1365,16 @@ export const remoteProjectsApi = {
     const result =
       await handleApiResponse<ListRemoteProjectsResponse>(response);
     return result.projects;
+  },
+
+  importGitHubIssues: async (
+    data: ImportGitHubIssuesRequest
+  ): Promise<ImportGitHubIssuesResponse> => {
+    const response = await makeRequest('/api/github/import/issues', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return handleApiResponse<ImportGitHubIssuesResponse>(response);
   },
 };
 

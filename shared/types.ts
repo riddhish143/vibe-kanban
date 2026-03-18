@@ -470,6 +470,12 @@ export type WorkspaceSummaryResponse = { summaries: Array<WorkspaceSummary>, };
 
 export type DiffStats = { files_changed: number, lines_added: number, lines_removed: number, };
 
+export type ImportGitHubIssuesRequest = { project_id: string, repository_url: string, };
+
+export type ImportGitHubIssueFailure = { github_issue_number: number, title: string, message: string, };
+
+export type ImportGitHubIssuesResponse = { created_count: number, skipped_count: number, failed_count: number, created_issue_ids: Array<string>, failures: Array<ImportGitHubIssueFailure>, };
+
 export type DirectoryEntry = { name: string, path: string, is_directory: boolean, is_git_repo: boolean, last_modified: bigint | null, };
 
 export type DirectoryListResponse = { entries: Array<DirectoryEntry>, current_path: string, };

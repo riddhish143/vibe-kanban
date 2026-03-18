@@ -59,23 +59,42 @@ cargo build --release --bin vibe-kanban-mcp --manifest-path Cargo.toml
 
 echo "📦 Creating distribution package..."
 
-# Copy the main binary
-cp ${CARGO_TARGET_DIR}/release/server vibe-kanban
-zip -q vibe-kanban.zip vibe-kanban
-rm -f vibe-kanban 
-mv vibe-kanban.zip npx-cli/dist/$PLATFORM/vibe-kanban.zip
+package_binary() {
+  local source_path="$1"
+  local staged_name="$2"
+  local output_zip="$3"
+  local temp_dir
 
-# Copy the MCP binary
-cp ${CARGO_TARGET_DIR}/release/vibe-kanban-mcp vibe-kanban-mcp
-zip -q vibe-kanban-mcp.zip vibe-kanban-mcp
-rm -f vibe-kanban-mcp
-mv vibe-kanban-mcp.zip npx-cli/dist/$PLATFORM/vibe-kanban-mcp.zip
+  if [ ! -f "$source_path" ]; then
+    echo "❌ Missing binary: $source_path"
+    exit 1
+  fi
 
-# Copy the Review CLI binary
-cp ${CARGO_TARGET_DIR}/release/review vibe-kanban-review
-zip -q vibe-kanban-review.zip vibe-kanban-review
-rm -f vibe-kanban-review
-mv vibe-kanban-review.zip npx-cli/dist/$PLATFORM/vibe-kanban-review.zip
+  temp_dir=$(mktemp -d)
+  cp "$source_path" "$temp_dir/$staged_name"
+
+  (
+    cd "$temp_dir"
+    zip -q "$OLDPWD/$output_zip" "$staged_name"
+  )
+
+  rm -rf "$temp_dir"
+}
+
+package_binary \
+  "${CARGO_TARGET_DIR}/release/server" \
+  "vibe-kanban" \
+  "npx-cli/dist/$PLATFORM/vibe-kanban.zip"
+
+package_binary \
+  "${CARGO_TARGET_DIR}/release/vibe-kanban-mcp" \
+  "vibe-kanban-mcp" \
+  "npx-cli/dist/$PLATFORM/vibe-kanban-mcp.zip"
+
+package_binary \
+  "${CARGO_TARGET_DIR}/release/review" \
+  "vibe-kanban-review" \
+  "npx-cli/dist/$PLATFORM/vibe-kanban-review.zip"
 
 echo "✅ CLI build complete!"
 echo "📁 Files created:"

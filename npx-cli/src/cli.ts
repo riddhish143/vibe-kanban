@@ -1,7 +1,6 @@
 import { execSync, spawn } from "child_process";
 import path from "path";
 import fs from "fs";
-import { cac } from "cac";
 import {
   ensureBinary,
   ensureDesktopBundle,
@@ -24,6 +23,21 @@ const CLI_VERSION: string = require("../package.json").version;
 type RootOptions = {
   desktop?: boolean;
 };
+
+function printHelp(): void {
+  console.log(`vibe-kanban v${CLI_VERSION}
+
+Usage:
+  vibe-kanban [--desktop]
+  vibe-kanban review [...args]
+  vibe-kanban mcp [...args]
+  vibe-kanban --mcp [...args]
+
+Options:
+  --desktop   Launch the desktop app instead of browser mode
+  -h, --help  Show this help message
+  -v, --version  Show version`);
+}
 
 // Resolve effective arch for our published 64-bit binaries only.
 // Any ARM → arm64; anything else → x64. On macOS, handle Rosetta.
@@ -119,6 +133,20 @@ function showProgress(downloaded: number, total: number): void {
   );
 }
 
+function extractZip(zipPath: string, destDir: string): void {
+  if (platform === "win32") {
+    const escapedZipPath = zipPath.split("'").join("''");
+    const escapedDestDir = destDir.split("'").join("''");
+    execSync(
+      `powershell -NoProfile -Command "Expand-Archive -LiteralPath '${escapedZipPath}' -DestinationPath '${escapedDestDir}' -Force"`,
+      { stdio: "pipe" },
+    );
+    return;
+  }
+
+  execSync(`unzip -oq "${zipPath}" -d "${destDir}"`, { stdio: "pipe" });
+}
+
 function buildMcpArgs(args: string[]): string[] {
   return args.length > 0 ? args : ["--mode", "global"];
 }
@@ -159,9 +187,7 @@ async function extractAndRun(
   // Extract
   if (!fs.existsSync(binPath)) {
     try {
-      const { default: AdmZip } = await import("adm-zip");
-      const zip = new AdmZip(zipPath);
-      zip.extractAllTo(versionCacheDir, true);
+      extractZip(zipPath, versionCacheDir);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error("Extraction failed:", msg);
@@ -305,35 +331,39 @@ function runOrExit(task: Promise<void>): void {
   });
 }
 
+function parseRootOptions(args: string[]): RootOptions {
+  return {
+    desktop: args.includes("--desktop"),
+  };
+}
+
 async function main(): Promise<void> {
   fs.mkdirSync(versionCacheDir, { recursive: true });
-  const cli = cac("vibe-kanban");
+  const argv = normalizeArgv(process.argv);
+  const args = argv.slice(2);
+  const [command, ...rest] = args;
 
-  cli
-    .command("[...args]", "Launch the local vibe-kanban app")
-    .option("--desktop", "Launch the desktop app instead of browser mode")
-    .allowUnknownOptions()
-    .action((_args: string[], options: RootOptions) => {
-      runOrExit(runMain(Boolean(options.desktop)));
-    });
+  if (command === "review") {
+    runOrExit(runReview(rest));
+    return;
+  }
 
-  cli
-    .command("review [...args]", "Run the review CLI")
-    .allowUnknownOptions()
-    .action((args: string[]) => {
-      runOrExit(runReview(args));
-    });
+  if (command === "mcp") {
+    runOrExit(runMcp(rest));
+    return;
+  }
 
-  cli
-    .command("mcp [...args]", "Run the MCP server")
-    .allowUnknownOptions()
-    .action((args: string[]) => {
-      runOrExit(runMcp(args));
-    });
+  if (args.includes("-h") || args.includes("--help") || command === "help") {
+    printHelp();
+    return;
+  }
 
-  cli.help();
-  cli.version(CLI_VERSION);
-  cli.parse(normalizeArgv(process.argv));
+  if (args.includes("-v") || args.includes("--version")) {
+    console.log(CLI_VERSION);
+    return;
+  }
+
+  runOrExit(runMain(Boolean(parseRootOptions(args).desktop)));
 }
 
 main().catch((err: unknown) => {

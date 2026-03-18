@@ -14,6 +14,7 @@ import { KanbanBadge } from './KanbanBadge';
 import { KanbanAssignee, type KanbanAssigneeUser } from './KanbanAssignee';
 import { RunningDots } from './RunningDots';
 import { PrBadge, type PrBadgeStatus } from './PrBadge';
+import { Checkbox } from './Checkbox';
 import {
   RelationshipBadge,
   type RelationshipDisplayType,
@@ -136,6 +137,8 @@ export type KanbanCardContentProps<TTag extends KanbanTag = KanbanTag> = {
   onPriorityClick?: (e: MouseEvent) => void;
   onAssigneeClick?: (e: MouseEvent) => void;
   onMoreActionsClick?: () => void;
+  isSelected?: boolean;
+  onSelectionChange?: (selected: boolean) => void;
   tagEditProps?: TagEditProps<TTag>;
   isMobile?: boolean;
 };
@@ -155,6 +158,8 @@ export function KanbanCardContent<TTag extends KanbanTag = KanbanTag>({
   onPriorityClick,
   onAssigneeClick,
   onMoreActionsClick,
+  isSelected = false,
+  onSelectionChange,
   tagEditProps,
   isMobile,
 }: KanbanCardContentProps<TTag>) {
@@ -204,6 +209,20 @@ export function KanbanCardContent<TTag extends KanbanTag = KanbanTag>({
       {/* Row 1: Task ID + sub-issue indicator + loading dots + more actions */}
       <div className="flex items-center justify-between gap-half">
         <div className="flex items-center gap-half min-w-0">
+          {onSelectionChange && (
+            <div
+              className="flex shrink-0 items-center"
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+              onTouchStart={(e) => e.stopPropagation()}
+            >
+              <Checkbox
+                checked={isSelected}
+                onCheckedChange={onSelectionChange}
+                className="border-low"
+              />
+            </div>
+          )}
           {isSubIssue && (
             <span className="text-sm text-low">
               {t('kanban.subIssueIndicator')}

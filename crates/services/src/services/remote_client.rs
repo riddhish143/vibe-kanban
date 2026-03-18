@@ -4,18 +4,19 @@ use std::time::Duration;
 
 use api_types::{
     AcceptInvitationResponse, CreateInvitationRequest, CreateInvitationResponse,
-    CreateIssueAssigneeRequest, CreateIssueRelationshipRequest, CreateIssueRequest,
-    CreateIssueTagRequest, CreateOrganizationRequest, CreateOrganizationResponse,
-    CreateWorkspaceRequest, DeleteResponse, DeleteWorkspaceRequest, GetInvitationResponse,
-    GetOrganizationResponse, HandoffInitRequest, HandoffInitResponse, HandoffRedeemRequest,
-    HandoffRedeemResponse, Issue, IssueAssignee, IssueRelationship, IssueTag,
-    ListAttachmentsResponse, ListInvitationsResponse, ListIssueAssigneesResponse,
-    ListIssueRelationshipsResponse, ListIssueTagsResponse, ListIssuesResponse, ListMembersResponse,
-    ListOrganizationsResponse, ListProjectStatusesResponse, ListProjectsResponse,
-    ListPullRequestsResponse, ListTagsResponse, MutationResponse, Organization, ProfileResponse,
-    RevokeInvitationRequest, SearchIssuesRequest, Tag, TokenRefreshRequest, TokenRefreshResponse,
-    UpdateIssueRequest, UpdateMemberRoleRequest, UpdateMemberRoleResponse,
-    UpdateOrganizationRequest, UpdateWorkspaceRequest, UpsertPullRequestRequest, Workspace,
+    CreateIssueAssigneeRequest, CreateIssueCommentRequest, CreateIssueRelationshipRequest,
+    CreateIssueRequest, CreateIssueTagRequest, CreateOrganizationRequest,
+    CreateOrganizationResponse, CreateWorkspaceRequest, DeleteResponse, DeleteWorkspaceRequest,
+    GetInvitationResponse, GetOrganizationResponse, HandoffInitRequest, HandoffInitResponse,
+    HandoffRedeemRequest, HandoffRedeemResponse, Issue, IssueAssignee, IssueComment,
+    IssueRelationship, IssueTag, ListAttachmentsResponse, ListInvitationsResponse,
+    ListIssueAssigneesResponse, ListIssueRelationshipsResponse, ListIssueTagsResponse,
+    ListIssuesResponse, ListMembersResponse, ListOrganizationsResponse,
+    ListProjectStatusesResponse, ListProjectsResponse, ListPullRequestsResponse, ListTagsResponse,
+    MutationResponse, Organization, ProfileResponse, RevokeInvitationRequest, SearchIssuesRequest,
+    Tag, TokenRefreshRequest, TokenRefreshResponse, UpdateIssueRequest, UpdateMemberRoleRequest,
+    UpdateMemberRoleResponse, UpdateOrganizationRequest, UpdateWorkspaceRequest,
+    UpsertPullRequestRequest, Workspace,
 };
 use backon::{ExponentialBuilder, Retryable};
 use chrono::Duration as ChronoDuration;
@@ -804,6 +805,16 @@ impl RemoteClient {
         res.json::<DeleteResponse>()
             .await
             .map_err(|e| RemoteClientError::Serde(e.to_string()))
+    }
+
+    // ── Issue Comments ──────────────────────────────────────────────────
+
+    /// Creates a new issue comment.
+    pub async fn create_issue_comment(
+        &self,
+        request: &CreateIssueCommentRequest,
+    ) -> Result<MutationResponse<IssueComment>, RemoteClientError> {
+        self.post_authed("/v1/issue_comments", Some(request)).await
     }
 
     // ── Issue Assignees ────────────────────────────────────────────────
