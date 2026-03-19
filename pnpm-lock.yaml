@@ -8,9 +8,6 @@ importers:
 
   .:
     devDependencies:
-      '@types/adm-zip':
-        specifier: ^0.5.7
-        version: 0.5.7
       '@types/node':
         specifier: ^20.0.0
         version: 20.19.37
@@ -2498,9 +2495,6 @@ packages:
 
   '@tauri-apps/api@2.10.1':
     resolution: {integrity: sha512-hKL/jWf293UDSUN09rR69hrToyIXBb8CjGaWC7gfinvnQrBVvnLr08FeFi38gxtugAVyVcTa5/FD/Xnkb1siBw==}
-
-  '@types/adm-zip@0.5.7':
-    resolution: {integrity: sha512-DNEs/QvmyRLurdQPChqq0Md4zGvPwHerAJYWk9l2jCbD1VPpnzRJorOdiq4zsw09NFbYnhfsoEhWtxIzXpn2yw==}
 
   '@types/babel__core@7.20.5':
     resolution: {integrity: sha512-qoQprZvz5wQFJwMDqeseRXWv3rqMvhgpbXFfVyWhbx9X47POIA6i/+dXefEmZKoAgOaTdaIgNSMqMIU61yRyzA==}
@@ -6229,10 +6223,6 @@ snapshots:
       zod: 3.25.76
 
   '@tauri-apps/api@2.10.1': {}
-
-  '@types/adm-zip@0.5.7':
-    dependencies:
-      '@types/node': 20.19.37
 
   '@types/babel__core@7.20.5':
     dependencies:

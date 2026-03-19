@@ -124,6 +124,9 @@ function formatKanbanDescriptionPreview(
 
 export type KanbanCardContentProps<TTag extends KanbanTag = KanbanTag> = {
   displayId: string;
+  /** Optional URL to the external issue (e.g. GitHub). When provided, the
+   * displayId is rendered as a clickable link opening in a new tab. */
+  issueLink?: string;
   title: string;
   description?: string | null;
   priority: PriorityLevel | null;
@@ -145,6 +148,7 @@ export type KanbanCardContentProps<TTag extends KanbanTag = KanbanTag> = {
 
 export function KanbanCardContent<TTag extends KanbanTag = KanbanTag>({
   displayId,
+  issueLink,
   title,
   description,
   priority,
@@ -228,9 +232,22 @@ export function KanbanCardContent<TTag extends KanbanTag = KanbanTag>({
               {t('kanban.subIssueIndicator')}
             </span>
           )}
-          <span className="font-ibm-plex-mono text-sm text-low truncate">
-            {displayId}
-          </span>
+          {issueLink ? (
+            <a
+              href={issueLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-ibm-plex-mono text-sm text-low truncate hover:text-normal hover:underline transition-colors"
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              {displayId}
+            </a>
+          ) : (
+            <span className="font-ibm-plex-mono text-sm text-low truncate">
+              {displayId}
+            </span>
+          )}
           {isLoading && <RunningDots />}
         </div>
         {onMoreActionsClick && (

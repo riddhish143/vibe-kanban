@@ -398,6 +398,7 @@
     "previewCodeBlock": "[Code block]",
     "previewImage": "[Image]",
     "previewImageWithName": "[Image: {{name}}]",
+    "selectAll": "Select All",
     "previewFile": "[File]",
     "previewFileWithName": "[File: {{name}}]",
     "imageAttachmentNameFallback": "Attachment",

@@ -108,7 +108,10 @@ const ImportGitHubIssuesDialogImpl = create<ImportGitHubIssuesDialogProps>(
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>
-              {t('kanban.importIssuesFromRepo', 'Import Issues from Repo')}
+              {t(
+                'kanban.importIssuesFromRepo',
+                'Import Issues from Repository'
+              )}
             </DialogTitle>
             <DialogDescription>
               {t(
@@ -160,8 +163,8 @@ const ImportGitHubIssuesDialogImpl = create<ImportGitHubIssuesDialogProps>(
                 </AlertTitle>
                 <AlertDescription className="space-y-2">
                   <p>
-                    {result.created_count} created, {result.skipped_count}{' '}
-                    skipped, {result.failed_count} failed.
+                    {result.created_count} created, {result.updated_count}{' '}
+                    updated, {result.failed_count} failed.
                   </p>
                   {result.failures.length > 0 && (
                     <div className="max-h-40 overflow-y-auto space-y-1 text-xs">

@@ -51,7 +51,6 @@
     "tauri:build": "cd crates/tauri-app && cargo tauri build"
   },
   "devDependencies": {
-    "@types/adm-zip": "^0.5.7",
     "@types/node": "^20.0.0",
     "bippy": "0.5.28",
     "concurrently": "^8.2.2",

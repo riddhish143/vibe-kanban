@@ -34,6 +34,7 @@ import {
 import WYSIWYGEditor, {
   type WYSIWYGEditorRef,
 } from '@/shared/components/WYSIWYGEditor';
+import { stripGitHubImportPrefix } from '@/shared/lib/stripGitHubImportPrefix';
 import { MemberRole } from 'shared/remote-types';
 import { ScratchType } from 'shared/types';
 
@@ -238,7 +239,7 @@ function IssueCommentsSectionContent() {
                 t('kanban.unknownUser')
               : t('kanban.unknownUser')
             : t('kanban.deletedUser'),
-          message: comment.message,
+          message: stripGitHubImportPrefix(comment.message) ?? comment.message,
           createdAt: comment.created_at,
           author: author ?? null,
           canModify,

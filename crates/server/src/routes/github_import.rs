@@ -6,7 +6,7 @@ use axum::{
     response::Json as ResponseJson,
     routing::post,
 };
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use deployment::Deployment;
 use reqwest::{Client, RequestBuilder, StatusCode};
 use serde::{Deserialize, Serialize};
@@ -28,6 +28,8 @@ fn github_client() -> &'static Client {
     HTTP_CLIENT.get_or_init(|| {
         Client::builder()
             .user_agent("vibe-kanban-server")
+            .timeout(std::time::Duration::from_secs(30))
+            .connect_timeout(std::time::Duration::from_secs(10))
             .build()
             .expect("failed to build GitHub import client")
     })
@@ -49,7 +51,7 @@ pub struct ImportGitHubIssueFailure {
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
 pub struct ImportGitHubIssuesResponse {
     pub created_count: usize,
-    pub skipped_count: usize,
+    pub updated_count: usize,
     pub failed_count: usize,
     pub created_issue_ids: Vec<Uuid>,
     pub failures: Vec<ImportGitHubIssueFailure>,
@@ -82,8 +84,6 @@ struct GitHubIssue {
 #[derive(Debug, Deserialize)]
 struct GitHubComment {
     body: Option<String>,
-    html_url: String,
-    created_at: DateTime<Utc>,
     user: GitHubUser,
 }
 
@@ -130,19 +130,48 @@ async fn import_github_issues(
     let github_issues = fetch_open_github_issues(&repo_ref, github_token.as_deref()).await?;
 
     let mut created_issue_ids = Vec::new();
+    let mut updated_count = 0;
     let mut failures = Vec::new();
-    let mut skipped_count = 0;
 
     for github_issue in github_issues {
         let import_key = make_import_key(&repo_ref.full_name(), github_issue.number);
-        if existing_imports.contains(&import_key) {
-            skipped_count += 1;
+        let description = build_issue_description(&repo_ref, &github_issue);
+        let extension_metadata = build_extension_metadata(&repo_ref, &github_issue);
+
+        if let Some(&existing_issue_id) = existing_imports.get(&import_key) {
+            // Issue already imported — update title, description, and metadata
+            // to reflect any changes made upstream on GitHub.
+            if let Err(err) = client
+                .update_issue(
+                    existing_issue_id,
+                    &api_types::UpdateIssueRequest {
+                        title: Some(github_issue.title.clone()),
+                        description: Some(Some(description)),
+                        extension_metadata: Some(extension_metadata),
+                        status_id: None,
+                        priority: None,
+                        start_date: None,
+                        target_date: None,
+                        completed_at: None,
+                        sort_order: None,
+                        parent_issue_id: None,
+                        parent_issue_sort_order: None,
+                    },
+                )
+                .await
+            {
+                failures.push(ImportGitHubIssueFailure {
+                    github_issue_number: github_issue.number as i32,
+                    title: github_issue.title.clone(),
+                    message: format!("Failed to update existing issue: {err}"),
+                });
+            } else {
+                updated_count += 1;
+            }
             continue;
         }
 
         max_sort_order += 1.0;
-        let description = build_issue_description(&repo_ref, &github_issue);
-        let extension_metadata = build_extension_metadata(&repo_ref, &github_issue);
 
         let issue_response = match client
             .create_issue(&api_types::CreateIssueRequest {
@@ -189,20 +218,25 @@ async fn import_github_issues(
                 }
             };
 
-        for comment in comments {
+        for (idx, comment) in comments.iter().enumerate() {
             if let Err(err) = client
                 .create_issue_comment(&api_types::CreateIssueCommentRequest {
                     id: None,
                     issue_id,
-                    message: build_comment_message(&comment),
+                    message: build_comment_message(comment),
                     parent_id: None,
                 })
                 .await
             {
+                let skipped = comments.len() - idx;
                 failures.push(ImportGitHubIssueFailure {
                     github_issue_number: github_issue.number as i32,
                     title: github_issue.title.clone(),
-                    message: format!("Issue imported, but failed to import a comment: {err}"),
+                    message: format!(
+                        "Issue imported, but failed to import a comment: {err}; {skipped} comment(s) skipped for issue #{}: {}",
+                        github_issue.number,
+                        github_issue.title
+                    ),
                 });
                 break;
             }
@@ -211,7 +245,7 @@ async fn import_github_issues(
 
     let response = ImportGitHubIssuesResponse {
         created_count: created_issue_ids.len(),
-        skipped_count,
+        updated_count,
         failed_count: failures.len(),
         created_issue_ids,
         failures,
@@ -238,10 +272,16 @@ fn make_import_key(repository: &str, issue_number: i64) -> String {
     format!("{repository}#{issue_number}")
 }
 
-fn build_existing_import_index(issues: &[api_types::Issue]) -> std::collections::HashSet<String> {
+/// Maps import keys to the IDs of already-imported issues so we can update
+/// them when re-importing instead of skipping.
+fn build_existing_import_index(
+    issues: &[api_types::Issue],
+) -> std::collections::HashMap<String, Uuid> {
     issues
         .iter()
-        .filter_map(|issue| extract_import_key(&issue.extension_metadata))
+        .filter_map(|issue| {
+            extract_import_key(&issue.extension_metadata).map(|key| (key, issue.id))
+        })
         .collect()
 }
 
@@ -257,21 +297,14 @@ fn extract_import_key(metadata: &Value) -> Option<String> {
     Some(make_import_key(repository, issue_number))
 }
 
-fn build_issue_description(repo_ref: &GitHubRepoRef, issue: &GitHubIssue) -> String {
-    let body = issue
+fn build_issue_description(_repo_ref: &GitHubRepoRef, issue: &GitHubIssue) -> String {
+    issue
         .body
         .as_deref()
         .map(str::trim)
         .filter(|body| !body.is_empty())
-        .unwrap_or("No description provided.");
-
-    format!(
-        "Imported from GitHub\nRepository: {}\nIssue: #{}\nSource: {}\n\n{}",
-        repo_ref.full_name(),
-        issue.number,
-        issue.html_url,
-        body
-    )
+        .unwrap_or("No description provided.")
+        .to_string()
 }
 
 fn build_extension_metadata(repo_ref: &GitHubRepoRef, issue: &GitHubIssue) -> Value {
@@ -295,13 +328,7 @@ fn build_comment_message(comment: &GitHubComment) -> String {
         .filter(|body| !body.is_empty())
         .unwrap_or("No comment body provided.");
 
-    format!(
-        "Imported from GitHub comment by @{} on {}.\nSource: {}\n\n{}",
-        comment.user.login,
-        comment.created_at.to_rfc3339(),
-        comment.html_url,
-        body
-    )
+    format!("**@{}**:\n\n{}", comment.user.login, body)
 }
 
 fn parse_github_repository_url(raw: &str) -> Result<GitHubRepoRef, String> {

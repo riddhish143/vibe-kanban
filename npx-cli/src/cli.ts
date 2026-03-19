@@ -1,4 +1,4 @@
-import { execSync, spawn } from "child_process";
+import { execSync, execFileSync, spawn } from "child_process";
 import path from "path";
 import fs from "fs";
 import {
@@ -133,18 +133,24 @@ function showProgress(downloaded: number, total: number): void {
   );
 }
 
+
+
 function extractZip(zipPath: string, destDir: string): void {
   if (platform === "win32") {
     const escapedZipPath = zipPath.split("'").join("''");
     const escapedDestDir = destDir.split("'").join("''");
-    execSync(
-      `powershell -NoProfile -Command "Expand-Archive -LiteralPath '${escapedZipPath}' -DestinationPath '${escapedDestDir}' -Force"`,
-      { stdio: "pipe" },
+    execFileSync(
+      "powershell",
+      [
+        "-NoProfile",
+        "-Command",
+        `Expand-Archive -LiteralPath '${escapedZipPath}' -DestinationPath '${escapedDestDir}' -Force'`
+      ],
+      { stdio: "pipe" }
     );
     return;
   }
-
-  execSync(`unzip -oq "${zipPath}" -d "${destDir}"`, { stdio: "pipe" });
+  execFileSync("unzip", ["-oq", zipPath, "-d", destDir], { stdio: "pipe" });
 }
 
 function buildMcpArgs(args: string[]): string[] {

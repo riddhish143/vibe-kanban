@@ -6,6 +6,7 @@ import {
   FunnelIcon,
   MagnifyingGlassIcon,
   PlusIcon,
+  UsersIcon,
   XIcon,
 } from '@phosphor-icons/react';
 import { cn } from '../lib/cn';
@@ -13,6 +14,10 @@ import type { PriorityLevel } from './PriorityIcon';
 import { InputField } from './InputField';
 import { PrimaryButton } from './PrimaryButton';
 import { ButtonGroup, ButtonGroupItem } from './IconButtonGroup';
+import {
+  PropertyDropdown,
+  type PropertyDropdownOption,
+} from './PropertyDropdown';
 
 export interface KanbanFilterTag {
   id: string;
@@ -95,6 +100,9 @@ interface KanbanFilterBarProps<
   onShowSubIssuesChange: (show: boolean) => void;
   onShowWorkspacesChange: (show: boolean) => void;
   onClearFilters: () => void;
+  groupByValue?: string;
+  groupByOptions?: PropertyDropdownOption<string>[];
+  onGroupByChange?: (value: string) => void;
   onCreateIssue: () => void;
   onImportIssues: () => void;
   shouldAnimateCreateButton: boolean;
@@ -130,6 +138,9 @@ export function KanbanFilterBar<
   onShowSubIssuesChange,
   onShowWorkspacesChange,
   onClearFilters,
+  groupByValue,
+  groupByOptions,
+  onGroupByChange,
   onCreateIssue,
   onImportIssues,
   shouldAnimateCreateButton,
@@ -229,6 +240,16 @@ export function KanbanFilterBar<
             <FunnelIcon className="size-icon-sm" weight="bold" />
           </button>
 
+          {groupByValue && groupByOptions && onGroupByChange && (
+            <PropertyDropdown
+              value={groupByValue}
+              options={groupByOptions}
+              onChange={onGroupByChange}
+              icon={UsersIcon}
+              label={t('toolbar.groupBy', 'Group by')}
+            />
+          )}
+
           {hasActiveFilters && (
             <PrimaryButton
               variant="tertiary"
@@ -249,7 +270,7 @@ export function KanbanFilterBar<
                 <span className="text-sm">
                   {t(
                     'kanban.importIssuesFromRepo',
-                    'Import Issues from Repo'
+                    'Import Issues from Repository'
                   )}
                 </span>
               </button>
@@ -271,7 +292,7 @@ export function KanbanFilterBar<
                 variant="tertiary"
                 value={t(
                   'kanban.importIssuesFromRepo',
-                  'Import Issues from Repo'
+                  'Import Issues from Repository'
                 )}
                 actionIcon={DownloadSimpleIcon}
                 onClick={() => onImportIssues()}

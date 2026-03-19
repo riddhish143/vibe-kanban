@@ -3,6 +3,7 @@ import type {
   IssueFormData,
   IssuePanelMode,
 } from '@vibe/ui/components/KanbanIssuePanel';
+import { stripGitHubImportPrefix } from '@/shared/lib/stripGitHubImportPrefix';
 
 interface EditTextState {
   title: string;
@@ -183,7 +184,7 @@ export function selectDisplayData({
       : (selectedIssue?.title ?? ''),
     description: state.editTextState.hasLocalDescriptionEdit
       ? state.editTextState.description
-      : (selectedIssue?.description ?? null),
+      : (stripGitHubImportPrefix(selectedIssue?.description) ?? null),
     statusId: selectedIssue?.status_id ?? '',
     priority: selectedIssue?.priority ?? null,
     assigneeIds: currentAssigneeIds,
