@@ -1,6 +1,7 @@
 import { forwardRef, createElement } from 'react';
 import type { Icon, IconProps } from '@phosphor-icons/react';
 import type { ExecutorConfig, Merge, Workspace } from 'shared/types';
+import { ThemeMode } from 'shared/types';
 import type { QueryClient } from '@tanstack/react-query';
 import {
   CopyIcon,
@@ -44,12 +45,15 @@ import {
   LinkIcon,
   ArrowBendUpRightIcon,
   ProhibitIcon,
+  MoonIcon,
+  SunIcon,
 } from '@phosphor-icons/react';
 import { useDiffViewStore } from '@/shared/stores/useDiffViewStore';
 import {
   useUiPreferencesStore,
   RIGHT_MAIN_PANEL_MODES,
 } from '@/shared/stores/useUiPreferencesStore';
+import { getResolvedTheme } from '@/shared/hooks/useTheme';
 
 import { workspacesApi, repoApi } from '@/shared/lib/api';
 import { bulkUpdateIssues } from '@/shared/lib/remoteApi';
@@ -596,6 +600,36 @@ export const Actions = {
       useUiPreferencesStore.getState().toggleLeftSidebar();
     },
   },
+
+  ToggleTheme: {
+    id: 'toggle-theme',
+    label: 'Toggle Theme',
+    getLabel: (ctx) =>
+      getResolvedTheme(ctx.theme) === 'dark'
+        ? 'Switch to Light Theme'
+        : 'Switch to Dark Theme',
+    icon: MoonIcon,
+    requiresTarget: ActionTargetType.NONE,
+    getIcon: (ctx) =>
+      getResolvedTheme(ctx.theme) === 'dark' ? SunIcon : MoonIcon,
+    execute: async (ctx) => {
+      const nextTheme =
+        getResolvedTheme(ctx.theme) === 'dark'
+          ? ThemeMode.LIGHT
+          : ThemeMode.DARK;
+      ctx.setTheme(nextTheme);
+
+      // Persist to user config
+      const { configApi } = await import('@/shared/lib/api');
+      const systemData = ctx.queryClient.getQueryData<{ config: any }>([
+        'user-system',
+      ]);
+      if (systemData?.config) {
+        await configApi.saveConfig({ ...systemData.config, theme: nextTheme });
+        await ctx.queryClient.invalidateQueries({ queryKey: ['user-system'] });
+      }
+    },
+  } satisfies GlobalActionDefinition,
 
   ToggleLeftMainPanel: {
     id: 'toggle-left-main-panel',
@@ -1545,6 +1579,7 @@ export const NavbarActionGroups = {
     Actions.WorkspacesGuide,
     Actions.ProjectsGuide,
     Actions.Settings,
+    Actions.ToggleTheme,
   ] as NavbarItem[],
 };
 

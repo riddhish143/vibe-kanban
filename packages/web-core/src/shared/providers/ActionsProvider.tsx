@@ -35,6 +35,7 @@ import { ActionsContext } from '@/shared/hooks/useActions';
 import { useAppNavigation } from '@/shared/hooks/useAppNavigation';
 import { useAppRuntime } from '@/shared/hooks/useAppRuntime';
 import { useCurrentAppDestination } from '@/shared/hooks/useCurrentAppDestination';
+import { useTheme } from '@/shared/hooks/useTheme';
 
 interface ActionsProviderProps {
   children: ReactNode;
@@ -60,6 +61,8 @@ export function ActionsProvider({ children }: ActionsProviderProps) {
   const projectCtx = useContext(ProjectContext);
   // Get dev server state
   const { start, stop, runningDevServers } = useDevServer(workspaceId);
+  // Get theme state
+  const { theme, setTheme } = useTheme();
 
   // Default status for issue creation based on current kanban tab
   const [defaultCreateStatusId, setDefaultCreateStatusId] = useState<
@@ -229,6 +232,8 @@ export function ActionsProvider({ children }: ActionsProviderProps) {
       kanbanOrgId: selectedOrgId ?? undefined,
       kanbanProjectId: projectId,
       projectMutations: projectMutations ?? undefined,
+      theme,
+      setTheme,
       remoteWorkspaces: (() => {
         const userWs = userCtx?.workspaces ?? [];
         const projectWs = projectCtx?.workspaces ?? [];
@@ -263,6 +268,8 @@ export function ActionsProvider({ children }: ActionsProviderProps) {
     projectMutations,
     userCtx?.workspaces,
     projectCtx?.workspaces,
+    theme,
+    setTheme,
   ]);
 
   // Main action executor with centralized target validation and error handling

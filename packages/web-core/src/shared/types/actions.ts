@@ -5,6 +5,7 @@ import type {
   ExecutionProcess,
   Workspace,
   PatchType,
+  ThemeMode,
 } from 'shared/types';
 import type { Workspace as RemoteWorkspace } from 'shared/remote-types';
 import type { DiffViewMode } from '@/shared/stores/useDiffViewStore';
@@ -100,6 +101,9 @@ export interface ActionExecutorContext {
   projectMutations?: ProjectMutations;
   // Remote workspaces (from Electric sync via UserContext)
   remoteWorkspaces: RemoteWorkspace[];
+  // Theme state
+  theme: ThemeMode;
+  setTheme: (theme: ThemeMode) => void;
 }
 
 // Context for evaluating action visibility and state conditions
@@ -147,6 +151,9 @@ export interface ActionVisibilityContext {
 
   // Auth state
   isSignedIn: boolean;
+
+  // Theme state
+  theme: ThemeMode;
 }
 
 // Enum discriminant for action target types
@@ -267,9 +274,12 @@ export function getActionIcon(
 
 export function getActionTooltip(
   action: ActionDefinition,
-  ctx: ActionVisibilityContext
+  ctx: ActionVisibilityContext,
+  workspace?: Workspace
 ): string {
-  return action.getTooltip ? action.getTooltip(ctx) : resolveLabel(action);
+  return action.getTooltip
+    ? action.getTooltip(ctx)
+    : getActionLabel(action, ctx, workspace);
 }
 
 export function getActionLabel(

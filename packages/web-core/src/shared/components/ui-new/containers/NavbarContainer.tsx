@@ -1,6 +1,7 @@
 import { useMemo, useCallback } from 'react';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 import { useUserContext } from '@/shared/hooks/useUserContext';
+import { SearchMode, type Workspace } from 'shared/types';
 import { useActions } from '@/shared/hooks/useActions';
 import { useSyncErrorContext } from '@/shared/hooks/useSyncErrorContext';
 import { useUserOrganizations } from '@/shared/hooks/useUserOrganizations';
@@ -83,7 +84,8 @@ function filterNavbarItems(
 function toNavbarSectionItems(
   items: readonly ActionNavbarItem[],
   ctx: ActionVisibilityContext,
-  onExecuteAction: (action: ActionDefinition) => void
+  onExecuteAction: (action: ActionDefinition) => void,
+  workspace?: Workspace
 ): NavbarSectionItem[] {
   return items.reduce<NavbarSectionItem[]>((result, item) => {
     if (isDivider(item)) {
@@ -101,7 +103,7 @@ function toNavbarSectionItems(
       id: item.id,
       icon,
       isActive: isActionActive(item, ctx),
-      tooltip: getActionTooltip(item, ctx),
+      tooltip: getActionTooltip(item, ctx, workspace),
       shortcut: item.shortcut,
       disabled: !isActionEnabled(item, ctx),
       onClick: () => onExecuteAction(item),
@@ -176,9 +178,10 @@ export function NavbarContainer({
         : toNavbarSectionItems(
             filterNavbarItems(NavbarActionGroups.left, actionCtx),
             actionCtx,
-            handleExecuteAction
+            handleExecuteAction,
+            selectedWorkspace ?? undefined
           ),
-    [actionCtx, handleExecuteAction, isMigratePage]
+    [actionCtx, handleExecuteAction, isMigratePage, selectedWorkspace]
   );
 
   const rightItems = useMemo(
@@ -188,9 +191,10 @@ export function NavbarContainer({
         : toNavbarSectionItems(
             filterNavbarItems(NavbarActionGroups.right, actionCtx),
             actionCtx,
-            handleExecuteAction
+            handleExecuteAction,
+            selectedWorkspace ?? undefined
           ),
-    [actionCtx, handleExecuteAction, isMigratePage]
+    [actionCtx, handleExecuteAction, isMigratePage, selectedWorkspace]
   );
 
   const navbarTitle = isCreateMode
