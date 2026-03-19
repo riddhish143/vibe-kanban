@@ -51,6 +51,7 @@ import {
 } from '@vibe/ui/components/IssueWorkspaceCard';
 import { resolveRelationshipsForIssue } from '@/shared/lib/resolveRelationships';
 import { stripGitHubImportPrefix } from '@/shared/lib/stripGitHubImportPrefix';
+import { formatRelativeTime } from '@/shared/lib/date';
 import { KanbanFilterBar } from '@vibe/ui/components/KanbanFilterBar';
 import { ViewNavTabs } from '@vibe/ui/components/ViewNavTabs';
 import { IssueListView } from '@vibe/ui/components/IssueListView';
@@ -1065,13 +1066,13 @@ export function KanbanContainer() {
                 return (
                   <KanbanBoard key={status.id}>
                     <KanbanHeader>
-                      <div className="border-t sticky border-b top-0 z-20 flex shrink-0 items-center justify-between gap-2 p-base bg-secondary">
+                      <div className="border-t sticky border-b-transparent top-0 z-20 flex shrink-0 items-center justify-between gap-2 px-base py-3 bg-secondary/80 backdrop-blur-md">
                         <div className="flex items-center gap-2">
                           <div
                             className="h-2 w-2 rounded-full shrink-0"
                             style={{ backgroundColor: `hsl(${status.color})` }}
                           />
-                          <p className="m-0 text-sm">{status.name}</p>
+                          <p className="m-0 text-sm font-medium text-low">{status.name} {issueIds.length}</p>
                         </div>
                         <div className="flex items-center gap-1">
                           {issueIds.length > 0 && hasUnselectedIssues && (
@@ -1158,6 +1159,7 @@ export function KanbanContainer() {
                                     )?.github_import?.issue_url ?? undefined
                                   }
                                   title={issue.title}
+                                  addedLabel={`Added ${formatRelativeTime(issue.created_at)}`}
                                   description={stripGitHubImportPrefix(issue.description) ?? issue.description}
                                   priority={issue.priority}
                                   tags={getTagObjectsForIssue(issue.id)}

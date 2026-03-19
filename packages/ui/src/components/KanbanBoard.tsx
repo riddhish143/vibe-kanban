@@ -106,9 +106,9 @@ export const KanbanCard = ({
         return (
           <Card
             className={cn(
-              'p-base outline-none flex-col border -mt-[1px] -mx-[1px] bg-primary',
-              snapshot.isDragging && 'cursor-grabbing shadow-lg',
-              isOpen && 'ring-2 ring-secondary-foreground ring-inset',
+              'outline-none flex-col border border-border/10 bg-card dark:bg-[#1c1c1c] rounded-xl mb-3 shadow-md transition-all',
+              snapshot.isDragging && 'cursor-grabbing scale-[1.02] shadow-xl ring-1 ring-border',
+              isOpen && 'ring-2 ring-primary ring-inset',
               className
             )}
             ref={setRefs}
@@ -175,7 +175,7 @@ export const KanbanCards = ({ id, children, className }: KanbanCardsProps) => (
   <Droppable droppableId={id}>
     {(provided: DroppableProvided) => (
       <div
-        className={cn('flex flex-1 flex-col', className)}
+        className={cn('flex flex-1 flex-col pt-3', className)}
         ref={provided.innerRef}
         {...provided.droppableProps}
       >

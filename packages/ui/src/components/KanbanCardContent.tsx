@@ -128,6 +128,7 @@ export type KanbanCardContentProps<TTag extends KanbanTag = KanbanTag> = {
    * displayId is rendered as a clickable link opening in a new tab. */
   issueLink?: string;
   title: string;
+  addedLabel?: string;
   description?: string | null;
   priority: PriorityLevel | null;
   tags: KanbanTag[];
@@ -150,13 +151,13 @@ export function KanbanCardContent<TTag extends KanbanTag = KanbanTag>({
   displayId,
   issueLink,
   title,
+  addedLabel,
   description,
   priority,
   tags,
   assignees,
   pullRequests = [],
   relationships = [],
-  isSubIssue,
   isLoading = false,
   className,
   onPriorityClick,
@@ -209,47 +210,15 @@ export function KanbanCardContent<TTag extends KanbanTag = KanbanTag>({
   );
 
   return (
-    <div className={cn('flex flex-col gap-half min-w-0', className)}>
-      {/* Row 1: Task ID + sub-issue indicator + loading dots + more actions */}
-      <div className="flex items-center justify-between gap-half">
-        <div className="flex items-center gap-half min-w-0">
-          {onSelectionChange && (
-            <div
-              className="flex shrink-0 items-center"
-              onClick={(e) => e.stopPropagation()}
-              onMouseDown={(e) => e.stopPropagation()}
-              onTouchStart={(e) => e.stopPropagation()}
-            >
-              <Checkbox
-                checked={isSelected}
-                onCheckedChange={onSelectionChange}
-                className="border-low"
-              />
-            </div>
-          )}
-          {isSubIssue && (
-            <span className="text-sm text-low">
-              {t('kanban.subIssueIndicator')}
-            </span>
-          )}
-          {issueLink ? (
-            <a
-              href={issueLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-ibm-plex-mono text-sm text-low truncate hover:text-normal hover:underline transition-colors"
-              onClick={(e) => e.stopPropagation()}
-              onMouseDown={(e) => e.stopPropagation()}
-            >
-              {displayId}
-            </a>
-          ) : (
-            <span className="font-ibm-plex-mono text-sm text-low truncate">
-              {displayId}
-            </span>
-          )}
-          {isLoading && <RunningDots />}
-        </div>
+    <div className={cn('flex flex-col gap-3 min-w-0 p-3.5', className)}>
+      {/* Top Meta Row (Added Date + Actions) */}
+      <div className="flex items-start justify-between">
+        {addedLabel ? (
+          <span className="text-xs text-low">{addedLabel}</span>
+        ) : (
+          <span /> // Spacer
+        )}
+        
         {onMoreActionsClick && (
           <button
             type="button"
@@ -259,11 +228,8 @@ export function KanbanCardContent<TTag extends KanbanTag = KanbanTag>({
             }}
             onMouseDown={(e) => e.stopPropagation()}
             className={cn(
-              'p-half -m-half rounded-sm text-low hover:text-normal hover:bg-secondary shrink-0',
-              isMobile
-                ? ''
-                : 'invisible opacity-0 group-hover:visible group-hover:opacity-100',
-              'transition-[opacity,color,background-color]'
+              'p-1 -m-1 rounded-sm text-low hover:text-normal hover:bg-secondary shrink-0 transition-[opacity,color,background-color]',
+              isMobile ? '' : 'invisible opacity-0 group-hover:visible group-hover:opacity-100'
             )}
             aria-label="More actions"
             title="More actions"
@@ -273,65 +239,121 @@ export function KanbanCardContent<TTag extends KanbanTag = KanbanTag>({
         )}
       </div>
 
-      {/* Row 2: Title */}
-      <span className="text-base text-normal truncate">{title}</span>
-
-      {/* Row 3: Description (optional, truncated) */}
-      {previewDescription && (
-        <p
-          className={cn(
-            'text-sm text-low m-0',
-            isMobile
-              ? 'leading-tight line-clamp-2'
-              : 'leading-relaxed line-clamp-4'
-          )}
-        >
-          {previewDescription}
-        </p>
-      )}
-
-      {/* Row 4: Priority + Assignee */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-half min-w-0">
-          {onPriorityClick ? (
-            <button
-              type="button"
-              onClick={onPriorityClick}
-              onMouseDown={(e) => e.stopPropagation()}
-              className="flex items-center cursor-pointer hover:bg-secondary rounded-sm transition-colors"
-            >
-              <PriorityIcon priority={priority} />
-              {!priority && (
-                <CircleDashedIcon
-                  className="size-icon-xs text-low"
-                  weight="bold"
-                />
-              )}
-            </button>
-          ) : (
-            <PriorityIcon priority={priority} />
-          )}
-        </div>
-        {onAssigneeClick ? (
-          <button
-            type="button"
-            onClick={onAssigneeClick}
+      {/* Title & Selection */}
+      <div className="flex items-start gap-2 min-w-0 -mt-1">
+        {onSelectionChange && (
+          <div
+            className="flex shrink-0 items-center mt-1"
+            onClick={(e) => e.stopPropagation()}
             onMouseDown={(e) => e.stopPropagation()}
-            className="cursor-pointer hover:bg-secondary rounded-sm transition-colors"
+            onTouchStart={(e) => e.stopPropagation()}
           >
-            <KanbanAssignee assignees={assignees} />
-          </button>
-        ) : (
-          <KanbanAssignee assignees={assignees} />
+            <Checkbox
+              checked={isSelected}
+              onCheckedChange={onSelectionChange}
+              className="border-low h-4 w-4"
+            />
+          </div>
         )}
+        <span className="text-[15px] font-medium text-normal tracking-tight leading-snug break-words">
+          {title}
+        </span>
       </div>
 
-      {/* Row 5: Tags, PRs, Relationships (own row to prevent overflow) */}
+      {/* Inner Bubble / Comment Box (Only show if there is description or assignees) */}
+      {(previewDescription || assignees.length > 0) && (
+        <div className="flex flex-col gap-2 bg-secondary dark:bg-[#2a2a2a] rounded-lg p-3">
+          {/* Header of bubble: Assignee & Priority */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              {onAssigneeClick ? (
+                <button
+                  type="button"
+                  onClick={onAssigneeClick}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  className="cursor-pointer hover:bg-secondary rounded-sm transition-colors"
+                >
+                  <KanbanAssignee assignees={assignees} />
+                </button>
+              ) : (
+                <KanbanAssignee assignees={assignees} />
+              )}
+              {assignees.length > 0 && (
+                <span className="text-sm font-medium text-normal">
+                  {[assignees[0].first_name, assignees[0].last_name].filter(Boolean).join(' ') || assignees[0].username || 'User'}
+                </span>
+              )}
+            </div>
+
+            {/* Display ID in bubble top right */}
+            <div className="flex items-center gap-1 shrink-0">
+              {isLoading && <RunningDots />}
+              {issueLink ? (
+                <a
+                  href={issueLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-ibm-plex-mono text-xs text-low hover:text-normal hover:underline transition-colors"
+                  onClick={(e) => e.stopPropagation()}
+                  onMouseDown={(e) => e.stopPropagation()}
+                >
+                  {displayId}
+                </a>
+              ) : (
+                <span className="font-ibm-plex-mono text-xs text-low">
+                  {displayId}
+                </span>
+              )}
+
+              {/* Priority Icon inline */}
+              {onPriorityClick ? (
+                <button
+                  type="button"
+                  onClick={onPriorityClick}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  className="flex items-center cursor-pointer hover:bg-secondary rounded-sm transition-colors ml-1"
+                >
+                  <PriorityIcon priority={priority} />
+                  {!priority && (
+                    <CircleDashedIcon
+                      className="size-icon-xs text-low"
+                      weight="bold"
+                    />
+                  )}
+                </button>
+              ) : (
+                <div className="ml-1"><PriorityIcon priority={priority} /></div>
+              )}
+            </div>
+          </div>
+
+          {/* Description Body */}
+          {previewDescription && (
+            <p
+              className={cn(
+                'text-sm text-low m-0',
+                isMobile
+                  ? 'leading-tight line-clamp-3'
+                  : 'leading-relaxed line-clamp-5'
+              )}
+            >
+              {previewDescription}
+            </p>
+          )}
+
+          {/* Timestamp inside bubble to match mockup */}
+          {addedLabel && (
+            <span className="text-xs text-low/60 mt-1">{addedLabel}</span>
+          )}
+        </div>
+      )}
+
+      {/* Row: Tags, PRs, Relationships */}
       {(tags.length > 0 ||
         tagEditProps ||
         pullRequests.length > 0 ||
         relationships.length > 0) && (
-        <div className="flex items-center gap-half flex-wrap min-w-0">
+        <div className="flex items-center gap-2 flex-wrap min-w-0 mt-1">
           {tagEditProps ? (
             (tagEditProps.renderTagEditor?.({
               allTags: tagEditProps.allTags,
@@ -359,7 +381,7 @@ export function KanbanCardContent<TTag extends KanbanTag = KanbanTag>({
             />
           ))}
           {pullRequests.length > 2 && (
-            <span className="text-sm text-low">+{pullRequests.length - 2}</span>
+            <span className="text-xs text-low">+{pullRequests.length - 2}</span>
           )}
           {relationships.slice(0, 2).map((rel) => (
             <RelationshipBadge
@@ -370,7 +392,7 @@ export function KanbanCardContent<TTag extends KanbanTag = KanbanTag>({
             />
           ))}
           {relationships.length > 2 && (
-            <span className="text-sm text-low">
+            <span className="text-xs text-low">
               +{relationships.length - 2}
             </span>
           )}
