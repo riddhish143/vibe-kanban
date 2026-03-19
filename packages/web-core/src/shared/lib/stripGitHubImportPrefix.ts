@@ -9,7 +9,9 @@
  * Comment prefix pattern:
  *   "Imported from GitHub comment by @... on ...\nSource: ...\n\n<body>"
  */
-export function stripGitHubImportPrefix(text: string | null | undefined): string | null | undefined {
+export function stripGitHubImportPrefix(
+  text: string | null | undefined
+): string | null | undefined {
   if (!text) return text;
 
   // Match the "Imported from GitHub\n...\n\n" header block (description)
@@ -19,7 +21,9 @@ export function stripGitHubImportPrefix(text: string | null | undefined): string
   }
 
   // Match the "Imported from GitHub comment by ...\n\n" header block (comments)
-  const commentMatch = text.match(/^Imported from GitHub comment by [\s\S]*?\n\n/);
+  const commentMatch = text.match(
+    /^Imported from GitHub comment by [\s\S]*?\n\n/
+  );
   if (commentMatch) {
     return text.slice(commentMatch[0].length) || null;
   }

@@ -1,9 +1,10 @@
-import { useMemo, useCallback, useState, useEffect } from 'react';
+import { useMemo, useCallback, useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDropzone } from 'react-dropzone';
 import { useCreateMode } from '@/features/create-mode/model/useCreateMode';
 import { AgentIcon } from '@/shared/components/AgentIcon';
 import { useUserSystem } from '@/shared/hooks/useUserSystem';
+import { useTheme, getResolvedTheme } from '@/shared/hooks/useTheme';
 import WYSIWYGEditor from '@/shared/components/WYSIWYGEditor';
 import { useCreateWorkspace } from '@/shared/hooks/useCreateWorkspace';
 import { useCreateAttachments } from '@/shared/hooks/useCreateAttachments';
@@ -40,6 +41,8 @@ export function CreateChatBoxContainer({
   onWorkspaceCreated,
 }: CreateChatBoxContainerProps) {
   const { t } = useTranslation('common');
+  const { theme } = useTheme();
+  const resolvedTheme = getResolvedTheme(theme);
   const { profiles, config } = useUserSystem();
   const {
     repos,
@@ -298,10 +301,198 @@ export function CreateChatBoxContainer({
     return null;
   }
 
+  const AsicBackground = () => {
+    const isDark = resolvedTheme === 'dark';
+
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const ripplesRef = useRef<{ x: number; y: number; startTime: number }[]>(
+      []
+    );
+
+    useEffect(() => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      let animationFrameId: number;
+      const resizeCanvas = () => {
+        canvas.width = canvas.offsetWidth;
+        canvas.height = canvas.offsetHeight;
+      };
+
+      window.addEventListener('resize', resizeCanvas);
+      resizeCanvas();
+
+      const chars = [' ', '.', ':', '-', '=', '+', '*', '#', '%', '@'];
+      const baseColors = [
+        '#000000',
+        '#000000',
+        '#000000',
+        '#111111',
+        '#333333',
+        '#666666',
+        '#999999',
+        '#cccccc',
+        '#ffffff',
+      ];
+      const colors = isDark ? baseColors : [...baseColors].reverse();
+      const canvasBg = isDark ? '#000000' : '#ffffff';
+
+      const noise = (x: number, y: number, t: number) => {
+        return (
+          (Math.sin(x * 0.04 + t * 0.8) +
+            Math.cos(y * 0.04 - t * 0.6) +
+            Math.sin((x + y) * 0.02 + t * 1.2)) /
+          3
+        );
+      };
+
+      const render = (time: number) => {
+        const elapsed = time / 1000;
+
+        ctx.fillStyle = canvasBg;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const fontSize = 12;
+        ctx.font = `bold ${fontSize}px monospace`;
+        ctx.textBaseline = 'top';
+        ctx.textAlign = 'center';
+
+        const cols = Math.ceil(canvas.width / fontSize);
+        const rows = Math.ceil(canvas.height / fontSize);
+
+        const currentRipples = ripplesRef.current;
+        const activeRipples = currentRipples.filter(
+          (r) => time - r.startTime < 2500
+        );
+        if (activeRipples.length !== currentRipples.length) {
+          ripplesRef.current = activeRipples;
+        }
+
+        for (let y = 0; y <= rows; y++) {
+          for (let x = 0; x <= cols; x++) {
+            const dx = x / cols - 0.5;
+            const dy = y / rows - 0.5;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            const n = noise(x, y, elapsed);
+            let v = ((n + 1) / 2) * (dist * 2.8);
+            if (v < 0) v = 0;
+
+            const cellX = x * fontSize + fontSize / 2;
+            const cellY = y * fontSize;
+            let rippleBoost = 0;
+
+            for (let i = 0; i < activeRipples.length; i++) {
+              const r = activeRipples[i];
+              const age = (time - r.startTime) / 1000;
+              const currentRadius = age * 800;
+
+              const rdx = cellX - r.x;
+              const rdy = cellY - r.y;
+              const rdist = Math.sqrt(rdx * rdx + rdy * rdy);
+              const ringDist = Math.abs(rdist - currentRadius);
+
+              if (ringDist < 80) {
+                const strength =
+                  Math.max(0, 1 - ringDist / 80) * Math.max(0, 1 - age / 2.5);
+                rippleBoost += strength * 1.5;
+              }
+            }
+
+            v += rippleBoost;
+            if (v > 1) v = 1;
+
+            if (v > 0.05) {
+              const charIndex = Math.floor(v * chars.length);
+              const colorIndex = Math.floor(v * colors.length);
+              const char = chars[Math.min(charIndex, chars.length - 1)];
+              const color = colors[Math.min(colorIndex, colors.length - 1)];
+
+              ctx.fillStyle = color;
+              ctx.fillText(char, cellX, cellY);
+            }
+          }
+        }
+        animationFrameId = requestAnimationFrame(render);
+      };
+
+      animationFrameId = requestAnimationFrame(render);
+
+      return () => {
+        window.removeEventListener('resize', resizeCanvas);
+        cancelAnimationFrame(animationFrameId);
+      };
+    }, []);
+
+    const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      ripplesRef.current.push({ x, y, startTime: performance.now() });
+    };
+
+    const isCreating = createWorkspace.isPending;
+
+    return (
+      <div
+        className={`absolute inset-0 overflow-hidden select-none z-0 transition-all duration-1000 ${
+          isDark ? 'bg-black' : 'bg-white'
+        } ${
+          isCreating
+            ? 'blur-[10px] opacity-70 scale-[1.05]'
+            : 'blur-0 opacity-100 scale-100'
+        }`}
+      >
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `
+            @keyframes asic-wave-pan {
+              0% { transform: scale(1); }
+              50% { transform: scale(1.15); }
+              100% { transform: scale(1); }
+            }
+            @keyframes asic-pulse-blur {
+              0% { filter: blur(10px); }
+              50% { filter: blur(15px); }
+              100% { filter: blur(10px); }
+            }
+            .animate-asic-wave {
+              animation: asic-wave-pan 12s ease-in-out infinite;
+            }
+            .animate-creating-blur {
+              animation: asic-pulse-blur 3s ease-in-out infinite;
+            }
+          `,
+          }}
+        />
+        <div
+          className={`absolute inset-[-15%] animate-asic-wave ${
+            isCreating ? 'animate-creating-blur' : ''
+          }`}
+        >
+          <canvas
+            ref={canvasRef}
+            className="w-full h-full"
+            onPointerDown={handlePointerDown}
+          />
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <div className="relative flex flex-1 flex-col bg-primary h-full">
-      <div className="flex flex-1 items-center justify-center px-base">
-        <div className="flex w-chat max-w-full flex-col gap-base">
+    <div className="relative flex flex-1 flex-col bg-primary h-full z-0 overflow-hidden">
+      <AsicBackground />
+      <div
+        className={`relative z-10 flex flex-1 items-center justify-center px-base pointer-events-none transition-all duration-700 ${
+          createWorkspace.isPending
+            ? 'blur-[4px] opacity-60 scale-[0.98]'
+            : 'blur-0 opacity-100 scale-100'
+        }`}
+      >
+        <div className="flex w-chat max-w-full flex-col gap-base pointer-events-auto">
           {showRepoPickerStep && (
             <>
               <h2 className="mb-double text-center text-4xl font-medium tracking-tight text-high">
@@ -321,6 +512,7 @@ export function CreateChatBoxContainer({
 
               <div className="flex justify-center @container">
                 <CreateChatBox
+                  theme={resolvedTheme}
                   editor={{
                     value: message,
                     onChange: setMessage,

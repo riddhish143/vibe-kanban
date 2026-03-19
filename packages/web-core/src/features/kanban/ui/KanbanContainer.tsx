@@ -1072,7 +1072,9 @@ export function KanbanContainer() {
                             className="h-2 w-2 rounded-full shrink-0"
                             style={{ backgroundColor: `hsl(${status.color})` }}
                           />
-                          <p className="m-0 text-sm font-medium text-low">{status.name} {issueIds.length}</p>
+                          <p className="m-0 text-sm font-medium text-low">
+                            {status.name} {issueIds.length}
+                          </p>
                         </div>
                         <div className="flex items-center gap-1">
                           {issueIds.length > 0 && hasUnselectedIssues && (
@@ -1160,7 +1162,11 @@ export function KanbanContainer() {
                                   }
                                   title={issue.title}
                                   addedLabel={`Added ${formatRelativeTime(issue.created_at)}`}
-                                  description={stripGitHubImportPrefix(issue.description) ?? issue.description}
+                                  description={
+                                    stripGitHubImportPrefix(
+                                      issue.description
+                                    ) ?? issue.description
+                                  }
                                   priority={issue.priority}
                                   tags={getTagObjectsForIssue(issue.id)}
                                   assignees={issueAssigneesMap[issue.id] ?? []}

@@ -91,20 +91,20 @@ html {
     color-scheme: dark;
 
     /* Internal variables (dark) - needed for public tokens */
-    --_background: 0 0% 13%;
+    --_background: 0 0% 0%;
     --_foreground: 0 0% 96%;
     --_primary: 240 4.8% 95.9%;
     --_primary-foreground: 240 5.9% 10%;
-    --_secondary: 0 0% 12%;
-    --_secondary-foreground: 0 0% 77%;
-    --_muted: 0 0% 16%;
-    --_muted-foreground: 0 0% 64%;
+    --_secondary: 0 0% 0%;
+    --_secondary-foreground: 0 0% 100%;
+    --_muted: 0 0% 0%;
+    --_muted-foreground: 0 0% 80%;
     --_accent: 0 0% 20%;
-    --_accent-foreground: 0 0% 96%;
+    --_accent-foreground: 0 0% 100%;
     --_destructive: 0 59% 57%;
     --_destructive-foreground: 0 0% 96%;
-    --_border: 0 0% 20%;
-    --_input: 0 0% 20%;
+    --_border: 0 0% 5%;
+    --_input: 0 0% 5%;
     --_ring: 0 0% 77%;
 
     /* Status (dark) */
@@ -118,14 +118,14 @@ html {
     --_neutral-foreground: 0 0% 90%;
 
     /* Text (dark) */
-    --text-high: 0 0% 96%;
-    --text-normal: 0 0% 77%;
-    --text-low: 0 0% 56%;
+    --text-high: 0 0% 100%;
+    --text-normal: 0 0% 90%;
+    --text-low: 0 0% 70%;
 
     /* Background (dark) - with VS Code overrides */
-    --_bg-primary-default: 0 0% 13%;
-    --_bg-secondary-default: 0 0% 11%;
-    --_bg-panel-default: 0 0% 16%;
+    --_bg-primary-default: 0 0% 0%;
+    --_bg-secondary-default: 0 0% 0%;
+    --_bg-panel-default: 0 0% 4%;
     --bg-primary: var(--vscode-editor-background, var(--_bg-primary-default));
     --bg-secondary: var(
       --vscode-editorWidget-background,
@@ -318,11 +318,11 @@ html {
   }
 
   .ansi-white {
-    @apply text-gray-600 dark:text-gray-200;
+    @apply text-white dark:text-white/80;
   }
 
   .ansi-black {
-    @apply text-black dark:text-gray-900;
+    @apply text-black dark:text-black;
   }
 
   .ansi-bright-red {

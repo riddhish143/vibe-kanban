@@ -77,6 +77,7 @@ interface CreateChatBoxProps<TExecutor extends string = string> {
   repoSummaryLabel: string;
   repoSummaryTitle: string;
   linkedIssue?: LinkedIssueBadgeProps | null;
+  theme?: 'light' | 'dark';
 }
 
 /**
@@ -112,6 +113,7 @@ export function CreateChatBox<TExecutor extends string = string>({
   repoSummaryLabel,
   repoSummaryTitle,
   linkedIssue,
+  theme,
 }: CreateChatBoxProps<TExecutor>) {
   const { t } = useTranslation(['common', 'tasks']);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -157,6 +159,7 @@ export function CreateChatBox<TExecutor extends string = string>({
       visualVariant={VisualVariant.NORMAL}
       dropzone={dropzone}
       modelSelector={modelSelector}
+      theme={theme}
       headerLeft={
         <>
           {agentIcon}

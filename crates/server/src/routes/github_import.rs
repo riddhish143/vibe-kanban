@@ -39,6 +39,7 @@ fn github_client() -> &'static Client {
 pub struct ImportGitHubIssuesRequest {
     pub project_id: Uuid,
     pub repository_url: String,
+    pub page: Option<u32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
@@ -55,12 +56,14 @@ pub struct ImportGitHubIssuesResponse {
     pub failed_count: usize,
     pub created_issue_ids: Vec<Uuid>,
     pub failures: Vec<ImportGitHubIssueFailure>,
+    pub has_more: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct GitHubRepoRef {
     owner: String,
     repo: String,
+    issue_number: Option<i64>,
 }
 
 impl GitHubRepoRef {
@@ -127,7 +130,9 @@ async fn import_github_issues(
         .map(|issue| issue.sort_order)
         .fold(0.0_f64, f64::max);
 
-    let github_issues = fetch_open_github_issues(&repo_ref, github_token.as_deref()).await?;
+    let page_index = payload.page.unwrap_or(1);
+    let (github_issues, has_more) =
+        fetch_open_github_issues(&repo_ref, github_token.as_deref(), page_index).await?;
 
     let mut created_issue_ids = Vec::new();
     let mut updated_count = 0;
@@ -249,6 +254,7 @@ async fn import_github_issues(
         failed_count: failures.len(),
         created_issue_ids,
         failures,
+        has_more,
     };
 
     Ok(ResponseJson(ApiResponse::success(response)))
@@ -354,46 +360,62 @@ fn parse_github_repository_url(raw: &str) -> Result<GitHubRepoRef, String> {
         return Err("Repository URL must include both owner and repository name".to_string());
     }
 
-    Ok(GitHubRepoRef { owner, repo })
+    let mut issue_number = None;
+    if segments.len() >= 4 && segments[2] == "issues" {
+        issue_number = segments[3].parse::<i64>().ok();
+    }
+
+    Ok(GitHubRepoRef {
+        owner,
+        repo,
+        issue_number,
+    })
 }
 
 async fn fetch_open_github_issues(
     repo_ref: &GitHubRepoRef,
     github_token: Option<&str>,
-) -> Result<Vec<GitHubIssue>, ApiError> {
-    let mut page = 1;
-    let mut issues = Vec::new();
+    page: u32,
+) -> Result<(Vec<GitHubIssue>, bool), ApiError> {
+    if let Some(issue_number) = repo_ref.issue_number {
+        if page > 1 {
+            return Ok((Vec::new(), false));
+        }
 
-    loop {
         let request = github_request(
-            github_client()
-                .get(format!(
-                    "{GITHUB_API_BASE}/repos/{}/{}/issues",
-                    repo_ref.owner, repo_ref.repo
-                ))
-                .query(&[
-                    ("state", "open".to_string()),
-                    ("per_page", "100".to_string()),
-                    ("page", page.to_string()),
-                ]),
+            github_client().get(format!(
+                "{GITHUB_API_BASE}/repos/{}/{}/issues/{}",
+                repo_ref.owner, repo_ref.repo, issue_number
+            )),
             github_token,
         );
 
-        let page_items: Vec<GitHubIssue> = send_github_request(request).await?;
-        let count = page_items.len();
-        issues.extend(
-            page_items
-                .into_iter()
-                .filter(|item| item.pull_request.is_none()),
-        );
-
-        if count < 100 {
-            break;
-        }
-        page += 1;
+        let issue: GitHubIssue = send_github_request(request).await?;
+        return Ok((vec![issue], false));
     }
 
-    Ok(issues)
+    let request = github_request(
+        github_client()
+            .get(format!(
+                "{GITHUB_API_BASE}/repos/{}/{}/issues",
+                repo_ref.owner, repo_ref.repo
+            ))
+            .query(&[
+                ("state", "open".to_string()),
+                ("per_page", "100".to_string()),
+                ("page", page.to_string()),
+            ]),
+        github_token,
+    );
+
+    let page_items: Vec<GitHubIssue> = send_github_request(request).await?;
+    let count = page_items.len();
+    let issues: Vec<GitHubIssue> = page_items
+        .into_iter()
+        .filter(|item| item.pull_request.is_none())
+        .collect();
+
+    Ok((issues, count == 100))
 }
 
 async fn fetch_issue_comments(
@@ -484,6 +506,23 @@ mod tests {
             GitHubRepoRef {
                 owner: "example-org".to_string(),
                 repo: "sample-project".to_string(),
+                issue_number: None,
+            }
+        );
+    }
+
+    #[test]
+    fn parses_valid_github_issue_url() {
+        let repo =
+            parse_github_repository_url("https://github.com/riddhish143/Natural-CLI/issues/12")
+                .expect("expected valid repo URL");
+
+        assert_eq!(
+            repo,
+            GitHubRepoRef {
+                owner: "riddhish143".to_string(),
+                repo: "Natural-CLI".to_string(),
+                issue_number: Some(12),
             }
         );
     }

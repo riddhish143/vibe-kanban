@@ -23,7 +23,7 @@ function getStatusIcon(status?: string | null) {
   if (s === 'in_progress' || s === 'in-progress')
     return <CircleDot aria-hidden className="size-icon-sm text-blue-500" />;
   if (s === 'cancelled')
-    return <Circle aria-hidden className="size-icon-sm text-gray-400" />;
+    return <Circle aria-hidden className="size-icon-sm text-low" />;
   return <Circle aria-hidden className="size-icon-sm text-muted-foreground" />;
 }
 
@@ -111,7 +111,7 @@ export function TodoProgressPopup({
           </div>
 
           {/* Progress bar */}
-          <div className="h-1.5 w-full bg-border rounded-full overflow-hidden shrink-0">
+          <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden shrink-0">
             <div
               className={cn(
                 'h-full transition-all duration-300 rounded-full',
@@ -133,7 +133,7 @@ export function TodoProgressPopup({
                 </span>
                 <span className="text-sm leading-5 break-words text-normal">
                   {todo.status?.toLowerCase() === 'cancelled' ? (
-                    <s className="text-gray-400">{todo.content}</s>
+                    <s className="text-low/60">{todo.content}</s>
                   ) : (
                     todo.content
                   )}

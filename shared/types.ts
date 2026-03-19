@@ -470,11 +470,11 @@ export type WorkspaceSummaryResponse = { summaries: Array<WorkspaceSummary>, };
 
 export type DiffStats = { files_changed: number, lines_added: number, lines_removed: number, };
 
-export type ImportGitHubIssuesRequest = { project_id: string, repository_url: string, };
+export type ImportGitHubIssuesRequest = { project_id: string, repository_url: string, page: number | null, };
 
 export type ImportGitHubIssueFailure = { github_issue_number: number, title: string, message: string, };
 
-export type ImportGitHubIssuesResponse = { created_count: number, updated_count: number, failed_count: number, created_issue_ids: Array<string>, failures: Array<ImportGitHubIssueFailure>, };
+export type ImportGitHubIssuesResponse = { created_count: number, updated_count: number, failed_count: number, created_issue_ids: Array<string>, failures: Array<ImportGitHubIssueFailure>, has_more: boolean, };
 
 export type DirectoryEntry = { name: string, path: string, is_directory: boolean, is_git_repo: boolean, last_modified: bigint | null, };
 

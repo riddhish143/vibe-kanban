@@ -265,7 +265,7 @@ export const KanbanProvider = ({
     <DragDropContext onDragEnd={onDragEnd}>
       <div
         className={cn(
-          'inline-grid grid-flow-col auto-cols-[minmax(200px,400px)] divide-x border-x items-stretch min-h-full',
+          'inline-grid grid-flow-col auto-cols-[minmax(200px,400px)] gap-6 items-stretch min-h-full',
           className
         )}
       >

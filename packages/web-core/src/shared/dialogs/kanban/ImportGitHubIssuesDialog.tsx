@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { create, useModal } from '@ebay/nice-modal-react';
 import { Loader2, CheckCircle2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -33,12 +33,12 @@ function validateGitHubRepoUrl(url: string): string | null {
 
     const parts = parsed.pathname.split('/').filter(Boolean);
     if (parts.length < 2 || !parts[0] || !parts[1]) {
-      return 'Enter a valid GitHub repository URL.';
+      return 'Enter a valid GitHub repository or issue URL.';
     }
 
     return null;
   } catch {
-    return 'Enter a valid GitHub repository URL.';
+    return 'Enter a valid GitHub repository or issue URL.';
   }
 }
 
@@ -52,6 +52,8 @@ const ImportGitHubIssuesDialogImpl = create<ImportGitHubIssuesDialogProps>(
       null
     );
     const [isImporting, setIsImporting] = useState(false);
+    const isCancelled = useRef(false);
+    const [stats, setStats] = useState<{ loaded: number }>({ loaded: 0 });
 
     useEffect(() => {
       if (!modal.visible) {
@@ -62,6 +64,8 @@ const ImportGitHubIssuesDialogImpl = create<ImportGitHubIssuesDialogProps>(
       setError(null);
       setResult(null);
       setIsImporting(false);
+      isCancelled.current = false;
+      setStats({ loaded: 0 });
     }, [modal.visible]);
 
     const validationError = useMemo(() => {
@@ -77,6 +81,14 @@ const ImportGitHubIssuesDialogImpl = create<ImportGitHubIssuesDialogProps>(
       modal.hide();
     };
 
+    const handleCancel = () => {
+      if (isImporting) {
+        isCancelled.current = true;
+      } else {
+        handleClose();
+      }
+    };
+
     const handleSubmit = async () => {
       const nextError = validateGitHubRepoUrl(repositoryUrl);
       if (nextError) {
@@ -86,15 +98,50 @@ const ImportGitHubIssuesDialogImpl = create<ImportGitHubIssuesDialogProps>(
 
       setIsImporting(true);
       setError(null);
+      isCancelled.current = false;
+      setStats({ loaded: 0 });
+
+      let currentPage = 1;
+      let hasMore = true;
+      const aggResult: ImportGitHubIssuesResponse = {
+        created_count: 0,
+        updated_count: 0,
+        failed_count: 0,
+        created_issue_ids: [],
+        failures: [],
+        has_more: false,
+      };
 
       try {
-        const response = await remoteProjectsApi.importGitHubIssues({
-          project_id: projectId,
-          repository_url: repositoryUrl.trim(),
-        });
-        setResult(response);
+        while (hasMore && !isCancelled.current) {
+          const response = await remoteProjectsApi.importGitHubIssues({
+            project_id: projectId,
+            repository_url: repositoryUrl.trim(),
+            page: currentPage,
+          });
+
+          aggResult.created_count += response.created_count;
+          aggResult.updated_count += response.updated_count;
+          aggResult.failed_count += response.failed_count;
+          aggResult.created_issue_ids.push(...response.created_issue_ids);
+          aggResult.failures.push(...response.failures);
+          hasMore = response.has_more ?? false;
+
+          setStats({
+            loaded:
+              aggResult.created_count +
+              aggResult.updated_count +
+              aggResult.failed_count,
+          });
+
+          currentPage++;
+        }
+        setResult(aggResult);
       } catch (err) {
         setError(getErrorMessage(err));
+        if (currentPage > 1) {
+          setResult(aggResult);
+        }
       } finally {
         setIsImporting(false);
       }
@@ -116,7 +163,7 @@ const ImportGitHubIssuesDialogImpl = create<ImportGitHubIssuesDialogProps>(
             <DialogDescription>
               {t(
                 'kanban.importIssuesFromRepoDescription',
-                'Paste a GitHub repository URL to import its open issues into this board.'
+                'Paste a GitHub repository URL or a specific issue URL to import into this board.'
               )}
             </DialogDescription>
           </DialogHeader>
@@ -124,7 +171,7 @@ const ImportGitHubIssuesDialogImpl = create<ImportGitHubIssuesDialogProps>(
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="github-repository-url">
-                {t('kanban.repositoryLink', 'Repository link')}
+                {t('kanban.repositoryLink', 'Repository or issue link')}
               </Label>
               <Input
                 id="github-repository-url"
@@ -135,7 +182,7 @@ const ImportGitHubIssuesDialogImpl = create<ImportGitHubIssuesDialogProps>(
                 }}
                 placeholder={t(
                   'kanban.importIssuesPlaceholder',
-                  'Paste your repository link here (e.g., GitHub repo URL)'
+                  'Paste your repository or issue link here (e.g., GitHub URL)'
                 )}
                 disabled={isImporting}
                 autoFocus
@@ -186,8 +233,8 @@ const ImportGitHubIssuesDialogImpl = create<ImportGitHubIssuesDialogProps>(
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={handleClose}
-              disabled={isImporting}
+              onClick={handleCancel}
+              disabled={isImporting && isCancelled.current}
             >
               {result
                 ? t('buttons.close', 'Close')
@@ -203,7 +250,12 @@ const ImportGitHubIssuesDialogImpl = create<ImportGitHubIssuesDialogProps>(
                 {isImporting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {t('kanban.importingIssues', 'Importing...')}
+                    {stats.loaded > 0
+                      ? t(
+                          'kanban.importingIssuesWithStats',
+                          `Importing... (${stats.loaded} loaded)`
+                        )
+                      : t('kanban.importingIssues', 'Importing...')}
                   </>
                 ) : (
                   t('kanban.importIssuesAction', 'Import Issues')
