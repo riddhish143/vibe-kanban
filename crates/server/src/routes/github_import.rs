@@ -35,6 +35,16 @@ fn github_client() -> &'static Client {
     })
 }
 
+fn clamp_github_issue_number(issue_number: i64) -> i32 {
+    if issue_number > i32::MAX as i64 {
+        i32::MAX
+    } else if issue_number < i32::MIN as i64 {
+        i32::MIN
+    } else {
+        issue_number as i32
+    }
+}
+
 #[derive(Debug, Deserialize, TS)]
 pub struct ImportGitHubIssuesRequest {
     pub project_id: Uuid,
@@ -168,7 +178,7 @@ async fn import_github_issues(
                 .await
             {
                 failures.push(ImportGitHubIssueFailure {
-                    github_issue_number: github_issue.number as i32,
+                    github_issue_number: clamp_github_issue_number(github_issue.number),
                     title: github_issue.title.clone(),
                     message: format!("Failed to update existing issue: {err}"),
                 });
@@ -206,7 +216,7 @@ async fn import_github_issues(
                         .await
                     {
                         failures.push(ImportGitHubIssueFailure {
-                            github_issue_number: github_issue.number as i32,
+                            github_issue_number: clamp_github_issue_number(github_issue.number),
                             title: github_issue.title.clone(),
                             message: format!("Failed to sync a comment on re-import: {err}"),
                         });
@@ -240,7 +250,7 @@ async fn import_github_issues(
             Ok(response) => response,
             Err(err) => {
                 failures.push(ImportGitHubIssueFailure {
-                    github_issue_number: github_issue.number as i32,
+                    github_issue_number: clamp_github_issue_number(github_issue.number),
                     title: github_issue.title.clone(),
                     message: err.to_string(),
                 });
@@ -256,7 +266,7 @@ async fn import_github_issues(
                 Ok(comments) => comments,
                 Err(err) => {
                     failures.push(ImportGitHubIssueFailure {
-                        github_issue_number: github_issue.number as i32,
+                        github_issue_number: clamp_github_issue_number(github_issue.number),
                         title: github_issue.title.clone(),
                         message: format!("Issue imported, but failed to import comments: {err}"),
                     });
@@ -275,7 +285,7 @@ async fn import_github_issues(
                 .await
             {
                 failures.push(ImportGitHubIssueFailure {
-                    github_issue_number: github_issue.number as i32,
+                    github_issue_number: clamp_github_issue_number(github_issue.number),
                     title: github_issue.title.clone(),
                     message: format!("Issue imported, but failed to import a comment: {err}"),
                 });

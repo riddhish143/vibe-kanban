@@ -15,14 +15,16 @@ import { InlineColorPicker, PRESET_COLORS } from './ColorPicker';
 // Re-export for backwards compatibility
 export const TAG_COLORS = PRESET_COLORS;
 
-function parseHslColor(color: string): {
+type ParsedHslColor = {
   hue: string;
   saturation: string;
   lightness: string;
-} {
+};
+
+export function parseHslColor(color: string): ParsedHslColor | null {
   const parts = color.trim().split(/\s+/);
   if (parts.length !== 3) {
-    return { hue: '', saturation: '', lightness: '' };
+    return null;
   }
 
   return {
@@ -120,18 +122,36 @@ export function SearchableTagDropdown({
   disabled,
 }: SearchableTagDropdownProps) {
   const { t } = useTranslation('common');
-  const { hue, saturation, lightness } = parseHslColor(newTagColor);
+  const parsedColor = parseHslColor(newTagColor);
+  const hue = parsedColor?.hue ?? '';
+  const saturation = parsedColor?.saturation ?? '';
+  const lightness = parsedColor?.lightness ?? '';
+  const isValidColor = parsedColor !== null;
+  const validationMessage = isValidColor
+    ? null
+    : t(
+        'kanban.invalidTagColor',
+        'Selected tag color is invalid. Choose a preset or reset the H/S/L values.'
+      );
 
   const updateColorPart = (
     part: 'hue' | 'saturation' | 'lightness',
     value: string
   ) => {
+    if (!parsedColor) {
+      return;
+    }
+
     const nextHue =
-      part === 'hue' ? clampColorPart(value, 0, 360) : hue;
+      part === 'hue' ? clampColorPart(value, 0, 360) : parsedColor.hue;
     const nextSaturation =
-      part === 'saturation' ? clampColorPart(value, 0, 100) : saturation;
+      part === 'saturation'
+        ? clampColorPart(value, 0, 100)
+        : parsedColor.saturation;
     const nextLightness =
-      part === 'lightness' ? clampColorPart(value, 0, 100) : lightness;
+      part === 'lightness'
+        ? clampColorPart(value, 0, 100)
+        : parsedColor.lightness;
 
     onNewTagColorChange(
       `${nextHue || '0'} ${nextSaturation || '0'}% ${nextLightness || '0'}%`
@@ -203,10 +223,15 @@ export function SearchableTagDropdown({
                 />
               </label>
             </div>
+            {validationMessage && (
+              <p className="text-xs text-destructive">{validationMessage}</p>
+            )}
             <div className="flex items-center gap-2 rounded-sm border border-border/70 bg-panel px-2 py-1.5 text-xs text-low">
               <span
                 className="h-3 w-3 shrink-0 rounded-full border border-border/60"
-                style={{ backgroundColor: `hsl(${newTagColor})` }}
+                style={{
+                  backgroundColor: isValidColor ? `hsl(${newTagColor})` : 'transparent',
+                }}
               />
               <span className="font-mono text-[11px] text-normal">
                 {newTagColor}
@@ -222,7 +247,12 @@ export function SearchableTagDropdown({
               </button>
               <button
                 type="button"
-                onClick={onConfirmCreate}
+                onClick={() => {
+                  if (isValidColor) {
+                    onConfirmCreate();
+                  }
+                }}
+                disabled={!isValidColor}
                 className="px-base py-half text-sm text-high bg-brand hover:bg-brand/90 rounded-sm transition-colors"
               >
                 {t('buttons.create')}

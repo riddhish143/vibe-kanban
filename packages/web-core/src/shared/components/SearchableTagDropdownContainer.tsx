@@ -4,6 +4,7 @@ import type { Tag } from 'shared/remote-types';
 import {
   SearchableTagDropdown,
   TAG_COLORS,
+  parseHslColor,
 } from '@vibe/ui/components/SearchableTagDropdown';
 
 const TAG_COLOR_OPTIONS: readonly string[] = TAG_COLORS;
@@ -128,7 +129,7 @@ export function SearchableTagDropdownContainer({
           case 'Enter':
             e.preventDefault();
             e.stopPropagation();
-            if (searchTerm.trim()) {
+            if (searchTerm.trim() && parseHslColor(newTagColor)) {
               const newTagId = onCreateTag({
                 name: searchTerm.trim(),
                 color: newTagColor,
@@ -209,7 +210,7 @@ export function SearchableTagDropdownContainer({
   }, []);
 
   const handleConfirmCreate = useCallback(() => {
-    if (!searchTerm.trim()) return;
+    if (!searchTerm.trim() || !parseHslColor(newTagColor)) return;
     const newTagId = onCreateTag({
       name: searchTerm.trim(),
       color: newTagColor,

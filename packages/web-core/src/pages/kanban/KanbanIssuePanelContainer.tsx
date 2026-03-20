@@ -310,6 +310,21 @@ export function KanbanIssuePanelContainer({
   // Display ID: use real simple_id in edit mode, placeholder for create mode
   const displayId = useMemo(() => {
     if (mode === 'edit' && selectedIssue) {
+      const githubImportMetadata = selectedIssue.extension_metadata as
+        | {
+            github_import?: {
+              issue_number?: number;
+            };
+          }
+        | null
+        | undefined;
+      const githubIssueNumber =
+        githubImportMetadata?.github_import?.issue_number;
+
+      if (typeof githubIssueNumber === 'number') {
+        return `Issue #${githubIssueNumber}`;
+      }
+
       return selectedIssue.simple_id;
     }
     return t('kanban.newIssue');

@@ -527,10 +527,6 @@ export function KanbanCardContent<TTag extends KanbanTag = KanbanTag>({
             </p>
           )}
 
-          {/* Timestamp inside bubble to match mockup */}
-          {addedLabel && (
-            <span className="text-xs text-low/60 mt-1">{addedLabel}</span>
-          )}
         </div>
       )}
 
