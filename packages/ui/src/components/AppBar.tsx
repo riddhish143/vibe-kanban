@@ -198,7 +198,7 @@ export function AppBar({
                       isActiveHost && 'ring-2 ring-brand',
                       host.status === 'online' && 'hover:bg-brand/10',
                       host.status === 'unpaired' &&
-                        'text-warning hover:bg-warning/10'
+                      'text-warning hover:bg-warning/10'
                     )}
                     aria-label={`${host.name} (${getHostStatusLabel(host.status)})`}
                   >
@@ -345,9 +345,9 @@ export function AppBar({
                           style={
                             activeProjectId === project.id
                               ? {
-                                  color: `hsl(${project.color})`,
-                                  backgroundColor: `hsl(${project.color} / 0.2)`,
-                                }
+                                color: `hsl(${project.color})`,
+                                backgroundColor: `hsl(${project.color} / 0.2)`,
+                              }
                               : undefined
                           }
                           aria-label={project.name}
@@ -389,7 +389,7 @@ export function AppBar({
         {notificationBell}
         {userPopover}
         <AppBarSocialLink
-          href="https://github.com/BloopAI/vibe-kanban"
+          href="https://github.com/riddhish143/vibe-kanban"
           label="Star on GitHub"
           iconPath={githubIconPath}
           badge={

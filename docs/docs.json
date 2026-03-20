@@ -135,7 +135,7 @@
     "links": [
       {
         "label": "GitHub",
-        "href": "https://github.com/BloopAI/vibe-kanban"
+        "href": "https://github.com/riddhish143/vibe-kanban"
       }
     ],
     "primary": {
@@ -174,7 +174,7 @@
   ],
   "footer": {
     "socials": {
-      "github": "https://github.com/BloopAI/vibe-kanban",
+      "github": "https://github.com/riddhish143/vibe-kanban",
       "x": "https://x.com/vibekanban"
     }
   }
