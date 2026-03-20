@@ -58,6 +58,7 @@ import { IssueListView } from '@vibe/ui/components/IssueListView';
 import { CommandBarDialog } from '@/shared/dialogs/command-bar/CommandBarDialog';
 import { KanbanFiltersDialog } from '@/shared/dialogs/kanban/KanbanFiltersDialog';
 import { ImportGitHubIssuesDialog } from '@/shared/dialogs/kanban/ImportGitHubIssuesDialog';
+import { ExplainIssueDialog } from '@/shared/dialogs/kanban/ExplainIssueDialog';
 import { Button } from '@vibe/ui/components/Button';
 import {
   DropdownMenu,
@@ -912,6 +913,17 @@ export function KanbanContainer() {
     [getTagsForIssue, insertIssueTag, removeIssueTag]
   );
 
+  const handleExplainClick = useCallback(
+    (issue: (typeof issues)[0]) => {
+      void ExplainIssueDialog.show({
+        issueId: issue.id,
+        issueTitle: issue.title,
+        issueDescription: typeof issue.description === 'string' ? issue.description : null,
+      });
+    },
+    []
+  );
+
   const getResolvedRelationshipsForIssue = useCallback(
     (issueId: string) =>
       resolveRelationshipsForIssue(
@@ -1189,6 +1201,10 @@ export function KanbanContainer() {
                                   onMoreActionsClick={() =>
                                     handleCardMoreActionsClick(issue.id)
                                   }
+                                  onExplainClick={(e) => {
+                                    e.stopPropagation();
+                                    handleExplainClick(issue);
+                                  }}
                                   isSelected={selectedIssueIdSet.has(issue.id)}
                                   onSelectionChange={(selected) =>
                                     handleIssueSelectionChange(

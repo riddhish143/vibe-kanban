@@ -7,6 +7,7 @@ import {
   CircleDashedIcon,
   DotsThreeIcon,
   PlusIcon,
+  Sparkle,
 } from '@phosphor-icons/react';
 import { cn } from '../lib/cn';
 import { PriorityIcon, type PriorityLevel } from './PriorityIcon';
@@ -141,6 +142,7 @@ export type KanbanCardContentProps<TTag extends KanbanTag = KanbanTag> = {
   onPriorityClick?: (e: MouseEvent) => void;
   onAssigneeClick?: (e: MouseEvent) => void;
   onMoreActionsClick?: () => void;
+  onExplainClick?: (e: MouseEvent) => void;
   isSelected?: boolean;
   onSelectionChange?: (selected: boolean) => void;
   tagEditProps?: TagEditProps<TTag>;
@@ -163,6 +165,7 @@ export function KanbanCardContent<TTag extends KanbanTag = KanbanTag>({
   onPriorityClick,
   onAssigneeClick,
   onMoreActionsClick,
+  onExplainClick,
   isSelected = false,
   onSelectionChange,
   tagEditProps,
@@ -219,23 +222,45 @@ export function KanbanCardContent<TTag extends KanbanTag = KanbanTag>({
           <span /> // Spacer
         )}
         
-        {onMoreActionsClick && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onMoreActionsClick();
-            }}
-            onMouseDown={(e) => e.stopPropagation()}
-            className={cn(
-              'p-1 -m-1 rounded-sm text-low hover:text-normal hover:bg-secondary shrink-0 transition-[opacity,color,background-color]',
-              isMobile ? '' : 'invisible opacity-0 group-hover:visible group-hover:opacity-100'
+        {(onMoreActionsClick || onExplainClick) && (
+          <div className="flex items-center gap-1 shrink-0">
+            {onExplainClick && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onExplainClick(e);
+                }}
+                onMouseDown={(e) => e.stopPropagation()}
+                className={cn(
+                  'p-1 -m-1 rounded-sm text-low hover:text-normal hover:bg-secondary shrink-0 transition-[opacity,color,background-color]',
+                  isMobile ? '' : 'invisible opacity-0 group-hover:visible group-hover:opacity-100'
+                )}
+                aria-label="Explain issue"
+                title="Explain issue"
+              >
+                <Sparkle className="size-icon-xs" weight="bold" />
+              </button>
             )}
-            aria-label="More actions"
-            title="More actions"
-          >
-            <DotsThreeIcon className="size-icon-xs" weight="bold" />
-          </button>
+            {onMoreActionsClick && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onMoreActionsClick();
+                }}
+                onMouseDown={(e) => e.stopPropagation()}
+                className={cn(
+                  'p-1 -m-1 rounded-sm text-low hover:text-normal hover:bg-secondary shrink-0 transition-[opacity,color,background-color]',
+                  isMobile ? '' : 'invisible opacity-0 group-hover:visible group-hover:opacity-100'
+                )}
+                aria-label="More actions"
+                title="More actions"
+              >
+                <DotsThreeIcon className="size-icon-xs" weight="bold" />
+              </button>
+            )}
+          </div>
         )}
       </div>
 
