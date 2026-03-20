@@ -137,6 +137,8 @@ module.exports = {
         half: getSize('base', 0.5),
       },
       fontFamily: {
+        'sagittaire-display': ['"Sagittaire Display"', 'serif'],
+        'dm-sans': ['"DM Sans"', '"Noto Emoji"', 'sans-serif'],
         'ibm-plex-sans': ['"IBM Plex Sans"', '"Noto Emoji"', 'sans-serif'],
         'ibm-plex-mono': ['"IBM Plex Mono"', 'monospace'],
       },

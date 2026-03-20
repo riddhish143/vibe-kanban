@@ -1,7 +1,7 @@
 import { useMemo, useCallback } from 'react';
 import { useWorkspaceContext } from '@/shared/hooks/useWorkspaceContext';
 import { useUserContext } from '@/shared/hooks/useUserContext';
-import { SearchMode, type Workspace } from 'shared/types';
+import { type Workspace } from 'shared/types';
 import { useActions } from '@/shared/hooks/useActions';
 import { useSyncErrorContext } from '@/shared/hooks/useSyncErrorContext';
 import { useUserOrganizations } from '@/shared/hooks/useUserOrganizations';
