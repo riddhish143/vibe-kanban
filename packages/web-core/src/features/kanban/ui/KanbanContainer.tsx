@@ -159,6 +159,7 @@ export function KanbanContainer() {
     insertIssueTag,
     removeIssueTag,
     insertTag,
+    removeTag,
     pullRequests,
     isLoading: projectLoading,
   } = useProjectContext();
@@ -945,6 +946,13 @@ export function KanbanContainer() {
     [insertTag, projectId]
   );
 
+  const handleDeleteTag = useCallback(
+    (tagId: string) => {
+      removeTag(tagId);
+    },
+    [removeTag]
+  );
+
   const isLoading = projectLoading || orgLoading;
 
   if (isLoading) {
@@ -1145,6 +1153,31 @@ export function KanbanContainer() {
                                   pr.workspace_id
                                 );
                               });
+                            const githubImportMetadata =
+                              issue.extension_metadata as
+                                | {
+                                    github_import?: {
+                                      issue_url?: string;
+                                      issue_number?: number;
+                                      creator?: {
+                                        username?: string;
+                                        avatar_url?: string | null;
+                                      };
+                                    };
+                                  }
+                                | null
+                                | undefined;
+                            const githubImport =
+                              githubImportMetadata?.github_import;
+                            const githubIssueNumber =
+                              githubImport?.issue_number;
+                            const githubCreator = githubImport?.creator
+                              ?.username
+                              ? {
+                                  username: githubImport.creator.username,
+                                  avatarUrl: githubImport.creator.avatar_url,
+                                }
+                              : null;
 
                             return (
                               <KanbanCard
@@ -1161,16 +1194,21 @@ export function KanbanContainer() {
                                 <KanbanCardContent
                                   displayId={issue.simple_id}
                                   issueLink={
-                                    (
-                                      issue.extension_metadata as
-                                        | {
-                                            github_import?: {
-                                              issue_url?: string;
-                                            };
-                                          }
-                                        | null
-                                        | undefined
-                                    )?.github_import?.issue_url ?? undefined
+                                    githubImport?.issue_url ?? undefined
+                                  }
+                                  issueLabel={
+                                    typeof githubIssueNumber === 'number'
+                                      ? `Issue #${githubIssueNumber}`
+                                      : undefined
+                                  }
+                                  issuePreview={
+                                    githubImport
+                                      ? {
+                                          title: issue.title,
+                                          description: issue.description,
+                                          creator: githubCreator,
+                                        }
+                                      : null
                                   }
                                   title={issue.title}
                                   addedLabel={`Added ${formatRelativeTime(issue.created_at)}`}
@@ -1182,6 +1220,7 @@ export function KanbanContainer() {
                                   priority={issue.priority}
                                   tags={getTagObjectsForIssue(issue.id)}
                                   assignees={issueAssigneesMap[issue.id] ?? []}
+                                  creator={githubCreator}
                                   pullRequests={issueCardPullRequests}
                                   relationships={resolveRelationshipsForIssue(
                                     issue.id,
@@ -1220,11 +1259,13 @@ export function KanbanContainer() {
                                     onTagToggle: (tagId) =>
                                       handleCardTagToggle(issue.id, tagId),
                                     onCreateTag: handleCreateTag,
+                                    onDeleteTag: handleDeleteTag,
                                     renderTagEditor: ({
                                       allTags,
                                       selectedTagIds,
                                       onTagToggle,
                                       onCreateTag,
+                                      onDeleteTag,
                                       trigger,
                                     }) => (
                                       <SearchableTagDropdownContainer
@@ -1232,6 +1273,7 @@ export function KanbanContainer() {
                                         selectedTagIds={selectedTagIds}
                                         onTagToggle={onTagToggle}
                                         onCreateTag={onCreateTag}
+                                        onDeleteTag={onDeleteTag}
                                         disabled={false}
                                         contentClassName=""
                                         trigger={trigger}

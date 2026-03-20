@@ -74,12 +74,14 @@ export function RelationshipBadge({
       }
       className={cn(
         'inline-flex items-center gap-half',
-        'h-5 px-half',
-        'rounded-sm',
+        'h-6 px-2',
+        'rounded-sm border',
         'text-sm font-medium',
         'whitespace-nowrap',
-        isBlocking ? 'bg-error/10 text-error' : 'bg-panel text-low',
-        onClick && 'cursor-pointer hover:opacity-80',
+        isBlocking
+          ? 'border-error/30 bg-error/12 text-error'
+          : 'border-border/60 bg-background/70 text-normal',
+        onClick && 'cursor-pointer transition-colors hover:border-border hover:bg-secondary/50',
         className
       )}
     >

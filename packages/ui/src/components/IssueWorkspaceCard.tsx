@@ -76,8 +76,8 @@ function IssueWorkspaceCardContainer({
   return (
     <div
       className={cn(
-        'flex flex-col gap-half p-base bg-panel rounded-sm transition-all duration-150',
-        onClick && 'cursor-pointer hover:bg-secondary/70',
+        'flex flex-col gap-half rounded-md border border-border/60 bg-background/60 p-base shadow-[inset_0_1px_0_rgba(255,255,255,0.02)] transition-all duration-150',
+        onClick && 'cursor-pointer hover:border-border hover:bg-secondary/45',
         className
       )}
       onClick={

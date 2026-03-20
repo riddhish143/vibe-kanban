@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { Droppable } from '@hello-pangea/dnd';
+import { GitBranchIcon } from '@phosphor-icons/react';
 import {
   CollapsibleSectionHeader,
   type SectionAction,
@@ -52,13 +53,16 @@ export function IssueSubIssuesSection({
       persistKey="kanban-issue-sub-issues"
       defaultExpanded={true}
       actions={actions}
+      titleIcon={GitBranchIcon}
+      className="rounded-md border border-border/70 bg-panel/20"
+      headerClassName="rounded-b-none"
     >
       <Droppable droppableId={parentIssueId}>
         {(provided) => (
           <div
             ref={provided.innerRef}
             {...provided.droppableProps}
-            className="p-base flex flex-col relative border-t"
+            className="relative flex flex-col gap-2 rounded-b-md bg-panel/35 p-base"
           >
             {isReordering && (
               <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-10">

@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { FolderNotchOpenIcon } from '@phosphor-icons/react';
 import {
   IssueWorkspaceCard,
   IssueWorkspaceCreateCard,
@@ -42,8 +43,11 @@ export function IssueWorkspacesSection({
       persistKey="kanban-issue-workspaces"
       defaultExpanded={true}
       actions={actions}
+      titleIcon={FolderNotchOpenIcon}
+      className="rounded-md border border-border/70 bg-panel/20"
+      headerClassName="rounded-b-none"
     >
-      <div className="px-base p-base flex flex-col gap-base border-t">
+      <div className="flex flex-col gap-base rounded-b-md bg-panel/35 p-base">
         {isLoading ? (
           <p className="text-low py-half">{t('workspaces.loading')}</p>
         ) : workspaces.length === 0 ? (

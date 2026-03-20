@@ -94,9 +94,10 @@ export function SubIssueRow({
             }
           }}
           className={cn(
-            'flex items-center gap-half px-base py-half rounded-sm transition-colors',
-            onClick && 'cursor-pointer hover:bg-secondary',
-            snapshot.isDragging && 'bg-secondary shadow-lg cursor-grabbing',
+            'flex items-center gap-half rounded-md border border-border/60 bg-background/55 px-base py-2 transition-colors',
+            onClick && 'cursor-pointer hover:border-border hover:bg-secondary/45',
+            snapshot.isDragging &&
+              'cursor-grabbing border-border bg-secondary/60 shadow-lg',
             className
           )}
         >

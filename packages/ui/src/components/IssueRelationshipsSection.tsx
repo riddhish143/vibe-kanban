@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslation } from 'react-i18next';
-import { XIcon } from '@phosphor-icons/react';
+import { LinkSimpleIcon, XIcon } from '@phosphor-icons/react';
 import { CollapsibleSectionHeader } from './CollapsibleSectionHeader';
 import {
   RelationshipBadge,
@@ -38,8 +38,11 @@ export function IssueRelationshipsSection({
       persistKey="kanban-issue-relationships"
       defaultExpanded={true}
       headerExtra={headerExtra}
+      titleIcon={LinkSimpleIcon}
+      className="rounded-md border border-border/70 bg-panel/20"
+      headerClassName="rounded-b-none"
     >
-      <div className="p-base flex flex-col gap-half border-t">
+      <div className="flex flex-col gap-2 rounded-b-md bg-panel/35 p-base">
         {isLoading ? (
           <p className="text-low py-half">{t('states.loading')}</p>
         ) : relationships.length === 0 ? (
@@ -50,7 +53,7 @@ export function IssueRelationshipsSection({
           relationships.map((rel) => (
             <div
               key={rel.relationshipId}
-              className="flex items-center justify-between group"
+              className="group flex items-center justify-between rounded-sm border border-border/60 bg-secondary/35 px-2 py-1.5"
             >
               <RelationshipBadge
                 displayType={rel.displayType}

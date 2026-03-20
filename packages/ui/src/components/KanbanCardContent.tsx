@@ -20,6 +20,13 @@ import {
   RelationshipBadge,
   type RelationshipDisplayType,
 } from './RelationshipBadge';
+import { Tooltip } from './Tooltip';
+import {
+  Tooltip as HoverPreview,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from './RadixTooltip';
 
 export interface KanbanTag {
   id: string;
@@ -40,11 +47,23 @@ export interface KanbanPullRequest {
   status: PrBadgeStatus;
 }
 
+export interface KanbanIssueCreator {
+  username: string;
+  avatarUrl?: string | null;
+}
+
+export interface KanbanIssuePreview {
+  title: string;
+  description?: string | null;
+  creator?: KanbanIssueCreator | null;
+}
+
 export interface TagEditRenderProps<TTag extends KanbanTag = KanbanTag> {
   allTags: TTag[];
   selectedTagIds: string[];
   onTagToggle: (tagId: string) => void;
   onCreateTag: (data: { name: string; color: string }) => string;
+  onDeleteTag?: (tagId: string) => void;
   trigger: ReactNode;
 }
 
@@ -53,6 +72,7 @@ export interface TagEditProps<TTag extends KanbanTag = KanbanTag> {
   selectedTagIds: string[];
   onTagToggle: (tagId: string) => void;
   onCreateTag: (data: { name: string; color: string }) => string;
+  onDeleteTag?: (tagId: string) => void;
   renderTagEditor?: (props: TagEditRenderProps<TTag>) => ReactNode;
 }
 
@@ -128,12 +148,15 @@ export type KanbanCardContentProps<TTag extends KanbanTag = KanbanTag> = {
   /** Optional URL to the external issue (e.g. GitHub). When provided, the
    * displayId is rendered as a clickable link opening in a new tab. */
   issueLink?: string;
+  issueLabel?: string;
+  issuePreview?: KanbanIssuePreview | null;
   title: string;
   addedLabel?: string;
   description?: string | null;
   priority: PriorityLevel | null;
   tags: KanbanTag[];
   assignees: KanbanAssigneeUser[];
+  creator?: KanbanIssueCreator | null;
   pullRequests?: KanbanPullRequest[];
   relationships?: KanbanRelationship[];
   isSubIssue?: boolean;
@@ -152,12 +175,15 @@ export type KanbanCardContentProps<TTag extends KanbanTag = KanbanTag> = {
 export function KanbanCardContent<TTag extends KanbanTag = KanbanTag>({
   displayId,
   issueLink,
+  issueLabel,
+  issuePreview,
   title,
   addedLabel,
   description,
   priority,
   tags,
   assignees,
+  creator,
   pullRequests = [],
   relationships = [],
   isLoading = false,
@@ -172,6 +198,9 @@ export function KanbanCardContent<TTag extends KanbanTag = KanbanTag>({
   isMobile,
 }: KanbanCardContentProps<TTag>) {
   const { t } = useTranslation('common');
+  const creatorName = creator?.username?.trim() || null;
+  const fallbackDisplayId = issueLabel ?? displayId;
+  const issuePreviewCreatorName = issuePreview?.creator?.username?.trim() || null;
   const previewDescription = useMemo(() => {
     if (!description) {
       return null;
@@ -188,6 +217,23 @@ export function KanbanCardContent<TTag extends KanbanTag = KanbanTag>({
     });
     return formatted.length > 0 ? formatted : null;
   }, [description, t]);
+  const issuePreviewDescription = useMemo(() => {
+    if (!issuePreview?.description) {
+      return null;
+    }
+
+    const formatted = formatKanbanDescriptionPreview(issuePreview.description, {
+      codeBlockLabel: t('kanban.previewCodeBlock'),
+      imageLabel: t('kanban.previewImage'),
+      imageWithNameLabel: (name: string) =>
+        t('kanban.previewImageWithName', { name }),
+      fileLabel: t('kanban.previewFile'),
+      fileWithNameLabel: (name: string) =>
+        t('kanban.previewFileWithName', { name }),
+    });
+
+    return formatted.length > 0 ? formatted : null;
+  }, [issuePreview?.description, t]);
 
   const tagsDisplay = (
     <>
@@ -211,6 +257,40 @@ export function KanbanCardContent<TTag extends KanbanTag = KanbanTag>({
       {tagsDisplay}
     </button>
   );
+
+  const creatorInitial =
+    creatorName?.charAt(0).toUpperCase() ??
+    assignees[0]?.username?.charAt(0).toUpperCase() ??
+    '?';
+
+  const creatorAvatar = creatorName ? (
+    <Tooltip content={creatorName}>
+      <div
+        className="flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-secondary text-[10px] font-medium text-low ring-1 ring-background"
+        aria-label={creatorName}
+      >
+        {creator?.avatarUrl ? (
+          <img
+            src={creator.avatarUrl}
+            alt={creatorName}
+            className="h-full w-full object-cover"
+            loading="lazy"
+            onError={(event) => {
+              const img = event.currentTarget;
+              img.style.display = 'none';
+              const fallback = img.nextElementSibling;
+              if (fallback instanceof HTMLElement) {
+                fallback.style.display = 'flex';
+              }
+            }}
+          />
+        ) : null}
+        <span style={creator?.avatarUrl ? { display: 'none' } : undefined}>
+          {creatorInitial}
+        </span>
+      </div>
+    </Tooltip>
+  ) : null;
 
   return (
     <div className={cn('flex flex-col gap-3 min-w-0 p-3.5', className)}>
@@ -291,7 +371,9 @@ export function KanbanCardContent<TTag extends KanbanTag = KanbanTag>({
           {/* Header of bubble: Assignee & Priority */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              {onAssigneeClick ? (
+              {creatorAvatar ? (
+                creatorAvatar
+              ) : onAssigneeClick ? (
                 <button
                   type="button"
                   onClick={onAssigneeClick}
@@ -303,30 +385,109 @@ export function KanbanCardContent<TTag extends KanbanTag = KanbanTag>({
               ) : (
                 <KanbanAssignee assignees={assignees} />
               )}
-              {assignees.length > 0 && (
+              {creatorName ? (
                 <span className="text-sm font-medium text-normal">
-                  {[assignees[0].first_name, assignees[0].last_name].filter(Boolean).join(' ') || assignees[0].username || 'User'}
+                  {creatorName}
                 </span>
-              )}
+              ) : assignees.length > 0 ? (
+                <span className="text-sm font-medium text-normal">
+                  {[assignees[0].first_name, assignees[0].last_name]
+                    .filter(Boolean)
+                    .join(' ') ||
+                    assignees[0].username ||
+                    'User'}
+                </span>
+              ) : null}
             </div>
 
             {/* Display ID in bubble top right */}
             <div className="flex items-center gap-1 shrink-0">
               {isLoading && <RunningDots />}
               {issueLink ? (
-                <a
-                  href={issueLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-ibm-plex-mono text-xs text-low hover:text-normal hover:underline transition-colors"
-                  onClick={(e) => e.stopPropagation()}
-                  onMouseDown={(e) => e.stopPropagation()}
-                >
-                  {displayId}
-                </a>
+                <TooltipProvider delayDuration={0}>
+                  <HoverPreview>
+                    <TooltipTrigger asChild>
+                      <a
+                        href={issueLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-ibm-plex-mono text-xs text-low hover:text-normal hover:underline transition-colors"
+                        onClick={(e) => e.stopPropagation()}
+                        onMouseDown={(e) => e.stopPropagation()}
+                      >
+                        {fallbackDisplayId}
+                      </a>
+                    </TooltipTrigger>
+                    <TooltipContent
+                      side="top"
+                      align="end"
+                      sideOffset={8}
+                      className="w-[320px] rounded-xl border border-border/70 bg-background/95 p-0 shadow-2xl backdrop-blur-md"
+                    >
+                      <div className="flex items-center justify-between border-b border-border/70 px-3 py-2">
+                        <span className="font-ibm-plex-mono text-[11px] text-low">
+                          {fallbackDisplayId}
+                        </span>
+                        <span className="text-[11px] text-low">
+                          GitHub preview
+                        </span>
+                      </div>
+                      <div className="flex flex-col gap-3 p-3">
+                        {issuePreviewCreatorName && (
+                          <div className="flex items-center gap-2">
+                            <div className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-secondary text-[11px] font-medium text-low">
+                              {issuePreview?.creator?.avatarUrl ? (
+                                <img
+                                  src={issuePreview.creator.avatarUrl}
+                                  alt={issuePreviewCreatorName}
+                                  className="h-full w-full object-cover"
+                                  loading="lazy"
+                                  onError={(event) => {
+                                    const img = event.currentTarget;
+                                    img.style.display = 'none';
+                                    const fallback = img.nextElementSibling;
+                                    if (fallback instanceof HTMLElement) {
+                                      fallback.style.display = 'flex';
+                                    }
+                                  }}
+                                />
+                              ) : null}
+                              <span
+                                style={
+                                  issuePreview?.creator?.avatarUrl
+                                    ? { display: 'none' }
+                                    : undefined
+                                }
+                              >
+                                {issuePreviewCreatorName.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                            <span className="text-sm font-medium text-normal">
+                              {issuePreviewCreatorName}
+                            </span>
+                          </div>
+                        )}
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium leading-snug text-normal">
+                            {issuePreview?.title ?? title}
+                          </p>
+                          {issuePreviewDescription ? (
+                            <p className="line-clamp-5 text-xs leading-relaxed text-low">
+                              {issuePreviewDescription}
+                            </p>
+                          ) : (
+                            <div className="rounded-md border border-dashed border-border/70 bg-secondary/20 px-3 py-2 text-xs text-low">
+                              Preview available from imported metadata.
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </TooltipContent>
+                  </HoverPreview>
+                </TooltipProvider>
               ) : (
                 <span className="font-ibm-plex-mono text-xs text-low">
-                  {displayId}
+                  {fallbackDisplayId}
                 </span>
               )}
 
@@ -385,6 +546,7 @@ export function KanbanCardContent<TTag extends KanbanTag = KanbanTag>({
               selectedTagIds: tagEditProps.selectedTagIds,
               onTagToggle: tagEditProps.onTagToggle,
               onCreateTag: tagEditProps.onCreateTag,
+              onDeleteTag: tagEditProps.onDeleteTag,
               trigger: tagEditorTrigger,
             }) ?? tagEditorTrigger)
           ) : (

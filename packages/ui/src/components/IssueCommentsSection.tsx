@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import type { LocalAttachmentMetadata } from './WorkspaceContext';
 import { cn } from '../lib/cn';
 import {
+  ChatCircleTextIcon,
   DotsThreeIcon,
   SmileyIcon,
   ArrowUpIcon,
@@ -140,8 +141,11 @@ export function IssueCommentsSection({
       persistKey="kanban-issue-comments"
       defaultExpanded={true}
       actions={[]}
+      titleIcon={ChatCircleTextIcon}
+      className="rounded-md border border-border/70 bg-panel/20"
+      headerClassName="rounded-b-none"
     >
-      <div className="p-base flex flex-col gap-base border-t">
+      <div className="flex flex-col gap-base rounded-b-md bg-panel/35 p-base">
         {/* Comments list */}
         {isLoading ? (
           <div className="flex flex-col gap-double animate-pulse">
@@ -173,7 +177,7 @@ export function IssueCommentsSection({
         {/* Comment Input with WYSIWYG + dropzone */}
         <div
           {...dropzoneProps?.getRootProps()}
-          className="relative flex flex-col gap-double bg-secondary border border-border rounded-sm p-double"
+          className="relative flex flex-col gap-double rounded-md border border-border/70 bg-background/70 p-double shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
         >
           <input {...dropzoneProps?.getInputProps()} />
           {renderEditor({
@@ -279,7 +283,7 @@ function CommentItem({
   const timeAgo = formatRelativeTime(comment.createdAt);
 
   return (
-    <div className="flex flex-col gap-base">
+    <div className="flex flex-col gap-base rounded-md border border-border/60 bg-background/55 p-base shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
       {/* Header row */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-base">

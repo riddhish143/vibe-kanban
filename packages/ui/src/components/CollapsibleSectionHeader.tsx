@@ -37,6 +37,8 @@ interface CollapsibleSectionHeaderProps {
   headerExtra?: ReactNode;
   children?: ReactNode;
   className?: string;
+  titleIcon?: Icon;
+  headerClassName?: string;
 }
 
 export function CollapsibleSectionHeader({
@@ -48,6 +50,8 @@ export function CollapsibleSectionHeader({
   headerExtra,
   children,
   className,
+  titleIcon: TitleIcon,
+  headerClassName,
 }: CollapsibleSectionHeaderProps) {
   const [expanded, setExpanded] = useState(() =>
     getInitialExpanded(persistKey, defaultExpanded)
@@ -91,7 +95,12 @@ export function CollapsibleSectionHeader({
 
   const headerContent = (
     <>
-      <span className="font-medium truncate text-normal">{title}</span>
+      <span className="flex min-w-0 items-center gap-2">
+        {TitleIcon && (
+          <TitleIcon className="size-icon-sm shrink-0 text-low" weight="bold" />
+        )}
+        <span className="truncate font-medium text-normal">{title}</span>
+      </span>
       <div className="flex items-center gap-half">
         {headerExtra}
         {actions.map((action, index) => {
@@ -133,7 +142,9 @@ export function CollapsibleSectionHeader({
             type="button"
             onClick={() => setExpanded((prev) => !prev)}
             className={cn(
-              'flex items-center justify-between w-full px-base py-half cursor-pointer'
+              'flex w-full items-center justify-between rounded-sm px-base py-3 text-left',
+              'cursor-pointer border-b border-border/70 bg-secondary/20 transition-colors hover:bg-secondary/35',
+              headerClassName
             )}
           >
             {headerContent}
@@ -141,7 +152,9 @@ export function CollapsibleSectionHeader({
         ) : (
           <div
             className={cn(
-              'flex items-center justify-between w-full px-base py-half'
+              'flex w-full items-center justify-between rounded-sm px-base py-3',
+              'border-b border-border/70 bg-secondary/20',
+              headerClassName
             )}
           >
             {headerContent}

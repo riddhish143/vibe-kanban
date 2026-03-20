@@ -110,6 +110,7 @@ export function KanbanIssuePanelContainer({
     insertIssueTag,
     removeIssueTag,
     insertTag,
+    removeTag,
     getTagsForIssue,
     getPullRequestsForIssue,
     isLoading: projectLoading,
@@ -992,6 +993,13 @@ export function KanbanIssuePanelContainer({
     [insertTag, projectId]
   );
 
+  const handleDeleteTag = useCallback(
+    (tagId: string) => {
+      removeTag(tagId);
+    },
+    [removeTag]
+  );
+
   // Copy link callback - copies issue URL to clipboard
   const handleCopyLink = useCallback(() => {
     if (!selectedKanbanIssueId || !projectId) return;
@@ -1045,11 +1053,13 @@ export function KanbanIssuePanelContainer({
       onSubmit={handleSubmit}
       onCmdEnterSubmit={handleCmdEnterSubmit}
       onCreateTag={handleCreateTag}
+      onDeleteTag={handleDeleteTag}
       renderAddTagControl={({
         tags,
         selectedTagIds,
         onTagToggle,
         onCreateTag,
+        onDeleteTag,
         disabled,
         trigger,
       }) => (
@@ -1058,6 +1068,7 @@ export function KanbanIssuePanelContainer({
           selectedTagIds={selectedTagIds}
           onTagToggle={onTagToggle}
           onCreateTag={onCreateTag}
+          onDeleteTag={onDeleteTag}
           disabled={disabled}
           contentClassName=""
           trigger={trigger}

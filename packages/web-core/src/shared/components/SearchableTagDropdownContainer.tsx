@@ -6,11 +6,14 @@ import {
   TAG_COLORS,
 } from '@vibe/ui/components/SearchableTagDropdown';
 
+const TAG_COLOR_OPTIONS: readonly string[] = TAG_COLORS;
+
 interface SearchableTagDropdownContainerProps {
   tags: Tag[];
   selectedTagIds: string[];
   onTagToggle: (tagId: string) => void;
   onCreateTag: (data: { name: string; color: string }) => string;
+  onDeleteTag?: (tagId: string) => void;
   trigger: React.ReactNode;
   disabled: boolean;
   contentClassName: string;
@@ -21,6 +24,7 @@ export function SearchableTagDropdownContainer({
   selectedTagIds,
   onTagToggle,
   onCreateTag,
+  onDeleteTag,
   trigger,
   disabled,
   contentClassName,
@@ -29,7 +33,7 @@ export function SearchableTagDropdownContainer({
   const [highlightedIndex, setHighlightedIndex] = useState<number | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
-  const [colorIndex, setColorIndex] = useState(0);
+  const [newTagColor, setNewTagColor] = useState<string>(TAG_COLORS[0]);
   const virtuosoRef = useRef<VirtuosoHandle>(null);
   const colorPickerRef = useRef<HTMLDivElement>(null);
 
@@ -39,9 +43,6 @@ export function SearchableTagDropdownContainer({
       colorPickerRef.current.focus();
     }
   }, [isCreating]);
-
-  // Derive newTagColor from colorIndex
-  const newTagColor = TAG_COLORS[colorIndex];
 
   // Filter tags based on search term
   const filteredTags = useMemo(() => {
@@ -103,14 +104,26 @@ export function SearchableTagDropdownContainer({
           case 'ArrowLeft':
             e.preventDefault();
             e.stopPropagation();
-            setColorIndex(
-              (prev) => (prev - 1 + TAG_COLORS.length) % TAG_COLORS.length
-            );
+            setNewTagColor((prev) => {
+              const currentIndex = TAG_COLOR_OPTIONS.indexOf(prev);
+              const nextIndex =
+                currentIndex <= 0
+                  ? TAG_COLOR_OPTIONS.length - 1
+                  : currentIndex - 1;
+              return TAG_COLOR_OPTIONS[nextIndex];
+            });
             return;
           case 'ArrowRight':
             e.preventDefault();
             e.stopPropagation();
-            setColorIndex((prev) => (prev + 1) % TAG_COLORS.length);
+            setNewTagColor((prev) => {
+              const currentIndex = TAG_COLOR_OPTIONS.indexOf(prev);
+              const nextIndex =
+                currentIndex >= TAG_COLOR_OPTIONS.length - 1
+                  ? 0
+                  : currentIndex + 1;
+              return TAG_COLOR_OPTIONS[nextIndex < 0 ? 0 : nextIndex];
+            });
             return;
           case 'Enter':
             e.preventDefault();
@@ -123,7 +136,7 @@ export function SearchableTagDropdownContainer({
               onTagToggle(newTagId); // Auto-select the newly created tag
               setSearchTerm('');
               setIsCreating(false);
-              setColorIndex(0);
+              setNewTagColor(TAG_COLORS[0]);
             }
             return;
           case 'Escape':
@@ -187,7 +200,7 @@ export function SearchableTagDropdownContainer({
       setSearchTerm('');
       setHighlightedIndex(null);
       setIsCreating(false);
-      setColorIndex(0);
+      setNewTagColor(TAG_COLORS[0]);
     }
   }, []);
 
@@ -204,15 +217,15 @@ export function SearchableTagDropdownContainer({
     onTagToggle(newTagId); // Auto-select the newly created tag
     setSearchTerm('');
     setIsCreating(false);
-    setColorIndex(0);
+    setNewTagColor(TAG_COLORS[0]);
   }, [searchTerm, newTagColor, onCreateTag, onTagToggle]);
 
   const handleCancelCreate = useCallback(() => {
     setIsCreating(false);
   }, []);
 
-  const handleColorIndexChange = useCallback((index: number) => {
-    setColorIndex(index);
+  const handleColorChange = useCallback((color: string) => {
+    setNewTagColor(color);
   }, []);
 
   return (
@@ -220,6 +233,7 @@ export function SearchableTagDropdownContainer({
       filteredTags={filteredTags}
       selectedTagIds={selectedTagIds}
       onTagToggle={onTagToggle}
+      onDeleteTag={onDeleteTag}
       trigger={trigger}
       searchTerm={searchTerm}
       onSearchTermChange={handleSearchTermChange}
@@ -232,8 +246,8 @@ export function SearchableTagDropdownContainer({
       showCreateOption={showCreateOption}
       createOptionHighlighted={createOptionHighlighted}
       isCreating={isCreating}
-      colorIndex={colorIndex}
-      onColorIndexChange={handleColorIndexChange}
+      newTagColor={newTagColor}
+      onNewTagColorChange={handleColorChange}
       onStartCreate={handleStartCreate}
       onConfirmCreate={handleConfirmCreate}
       onCancelCreate={handleCancelCreate}

@@ -115,6 +115,7 @@ export interface KanbanIssuePanelProps {
 
   // Tag create callback - returns the new tag ID
   onCreateTag?: (data: { name: string; color: string }) => string;
+  onDeleteTag?: (tagId: string) => void;
   renderAddTagControl?: (
     props: IssueTagsRowAddTagControlProps<KanbanIssueTag>
   ) => ReactNode;
@@ -176,6 +177,7 @@ export function KanbanIssuePanel({
   onCmdEnterSubmit,
   onDeleteDraft,
   onCreateTag,
+  onDeleteTag,
   renderAddTagControl,
   renderDescriptionEditor,
   isSubmitting,
@@ -326,6 +328,7 @@ export function KanbanIssuePanel({
             linkedPrs={isCreateMode ? [] : linkedPrs}
             onTagsChange={(tagIds) => onFormChange('tagIds', tagIds)}
             onCreateTag={onCreateTag}
+            onDeleteTag={onDeleteTag}
             renderAddTagControl={renderAddTagControl}
             disabled={isSubmitting}
           />

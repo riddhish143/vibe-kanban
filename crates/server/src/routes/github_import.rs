@@ -80,6 +80,7 @@ struct GitHubIssue {
     html_url: String,
     node_id: Option<String>,
     comments_url: String,
+    user: GitHubUser,
     #[serde(default)]
     pull_request: Option<Value>,
 }
@@ -93,6 +94,7 @@ struct GitHubComment {
 #[derive(Debug, Deserialize)]
 struct GitHubUser {
     login: String,
+    avatar_url: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -354,6 +356,10 @@ fn build_extension_metadata(repo_ref: &GitHubRepoRef, issue: &GitHubIssue) -> Va
             "issue_number": issue.number,
             "issue_node_id": issue.node_id,
             "issue_url": issue.html_url,
+            "creator": {
+                "username": issue.user.login,
+                "avatar_url": issue.user.avatar_url,
+            },
             "imported_at": Utc::now(),
         }
     })

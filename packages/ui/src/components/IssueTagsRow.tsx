@@ -34,6 +34,7 @@ export interface IssueTagsRowProps<TTag extends IssueTagBase = IssueTagBase> {
   linkedIssues?: LinkedIssue[];
   onTagsChange: (tagIds: string[]) => void;
   onCreateTag?: (data: { name: string; color: string }) => string;
+  onDeleteTag?: (tagId: string) => void;
   renderAddTagControl?: (
     props: IssueTagsRowAddTagControlProps<TTag>
   ) => ReactNode;
@@ -48,6 +49,7 @@ export interface IssueTagsRowAddTagControlProps<
   selectedTagIds: string[];
   onTagToggle: (tagId: string) => void;
   onCreateTag: (data: { name: string; color: string }) => string;
+  onDeleteTag?: (tagId: string) => void;
   disabled: boolean;
   trigger: ReactNode;
 }
@@ -59,6 +61,7 @@ export function IssueTagsRow<TTag extends IssueTagBase>({
   linkedIssues = [],
   onTagsChange,
   onCreateTag,
+  onDeleteTag,
   renderAddTagControl,
   disabled,
   className,
@@ -149,6 +152,7 @@ export function IssueTagsRow<TTag extends IssueTagBase>({
           selectedTagIds,
           onTagToggle: handleTagToggle,
           onCreateTag: handleCreateTag,
+          onDeleteTag,
           disabled: disabled ?? false,
           trigger: addTagTrigger,
         }) ??
