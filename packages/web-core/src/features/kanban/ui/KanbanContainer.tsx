@@ -43,6 +43,7 @@ import {
   KanbanHeader,
   type DropResult,
 } from '@vibe/ui/components/KanbanBoard';
+import { KanbanBadge } from '@vibe/ui/components/KanbanBadge';
 import { KanbanCardContent } from '@vibe/ui/components/KanbanCardContent';
 import {
   IssueWorkspaceCard,
@@ -913,16 +914,14 @@ export function KanbanContainer() {
     [getTagsForIssue, insertIssueTag, removeIssueTag]
   );
 
-  const handleExplainClick = useCallback(
-    (issue: (typeof issues)[0]) => {
-      void ExplainIssueDialog.show({
-        issueId: issue.id,
-        issueTitle: issue.title,
-        issueDescription: typeof issue.description === 'string' ? issue.description : null,
-      });
-    },
-    []
-  );
+  const handleExplainClick = useCallback((issue: (typeof issues)[0]) => {
+    void ExplainIssueDialog.show({
+      issueId: issue.id,
+      issueTitle: issue.title,
+      issueDescription:
+        typeof issue.description === 'string' ? issue.description : null,
+    });
+  }, []);
 
   const getResolvedRelationshipsForIssue = useCallback(
     (issueId: string) =>
@@ -1079,14 +1078,15 @@ export function KanbanContainer() {
                   <KanbanBoard key={status.id}>
                     <KanbanHeader>
                       <div className="border-t sticky border-b-transparent top-0 z-20 flex shrink-0 items-center justify-between gap-2 px-base py-3 bg-secondary/80 backdrop-blur-md">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-base">
                           <div
-                            className="h-2 w-2 rounded-full shrink-0"
+                            className="h-2.5 w-2.5 rounded-full shrink-0"
                             style={{ backgroundColor: `hsl(${status.color})` }}
                           />
                           <p className="m-0 text-sm font-medium text-low">
-                            {status.name} {issueIds.length}
+                            {status.name}
                           </p>
+                          <KanbanBadge name={String(issueIds.length)} />
                         </div>
                         <div className="flex items-center gap-1">
                           {issueIds.length > 0 && hasUnselectedIssues && (
@@ -1113,7 +1113,7 @@ export function KanbanContainer() {
                     </KanbanHeader>
                     <KanbanCards id={status.id}>
                       {swimlanes.map((lane) => (
-                        <div key={lane.key} className="flex flex-col">
+                        <div key={lane.key} className="flex flex-col gap-3">
                           {groupBy === 'assignee' && (
                             <div className="border-b border-border/70 bg-primary/60 px-base py-half">
                               <p className="m-0 text-xs uppercase tracking-wide text-low">

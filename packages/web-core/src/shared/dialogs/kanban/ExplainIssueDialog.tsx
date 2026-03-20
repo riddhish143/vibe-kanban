@@ -67,9 +67,10 @@ function ExplainIssueDialogContent({
           // Ignore tags fetch failure, fallback to try generation which will cleanly surface the connection error
         }
 
-        const commentsText = comments.length > 0
-          ? comments.map(c => `- ${c.message}`).join('\n')
-          : 'No comments yet.';
+        const commentsText =
+          comments.length > 0
+            ? comments.map((c) => `- ${c.message}`).join('\n')
+            : 'No comments yet.';
 
         const prompt = `You are an AI assistant helping summarize a kanban issue.
 
@@ -113,7 +114,9 @@ Four sections to include:
             'Ollama is not running locally or could not be reached. Please install Ollama, run a local model, and ensure cross-origin (CORS) access is permitted.'
           );
         } else {
-          setError(err instanceof Error ? err.message : 'Unknown error occurred');
+          setError(
+            err instanceof Error ? err.message : 'Unknown error occurred'
+          );
         }
       } finally {
         setIsGenerating(false);
@@ -121,7 +124,13 @@ Four sections to include:
     };
 
     void fetchExplanation();
-  }, [modal.visible, isCommentsLoading, issueTitle, issueDescription, comments]);
+  }, [
+    modal.visible,
+    isCommentsLoading,
+    issueTitle,
+    issueDescription,
+    comments,
+  ]);
 
   const handleClose = () => {
     modal.resolve();
@@ -159,12 +168,16 @@ Four sections to include:
           {isCommentsLoading ? (
             <div className="flex flex-col h-[400px] items-center justify-center text-low space-y-4">
               <Loader2 className="h-10 w-10 animate-spin text-brand/40" />
-              <p className="font-medium animate-pulse">Loading issue context...</p>
+              <p className="font-medium animate-pulse">
+                Loading issue context...
+              </p>
             </div>
           ) : isGenerating ? (
             <div className="flex flex-col h-[400px] items-center justify-center text-low space-y-4">
               <Loader2 className="h-10 w-10 animate-spin text-brand/40" />
-              <p className="font-medium animate-pulse">Ollama is analyzing the issue...</p>
+              <p className="font-medium animate-pulse">
+                Ollama is analyzing the issue...
+              </p>
             </div>
           ) : error ? (
             <div className="flex flex-col h-[400px] items-center justify-center text-destructive text-center space-y-3 p-8 border border-destructive/20 rounded-xl bg-destructive/5 mx-4">
@@ -193,17 +206,14 @@ Four sections to include:
   );
 }
 
-const ExplainIssueDialogImpl = create<ExplainIssueDialogProps>(
-  (props) => {
-    return (
-      <IssueProvider issueId={props.issueId}>
-        <ExplainIssueDialogContent {...props} />
-      </IssueProvider>
-    );
-  }
-);
+const ExplainIssueDialogImpl = create<ExplainIssueDialogProps>((props) => {
+  return (
+    <IssueProvider issueId={props.issueId}>
+      <ExplainIssueDialogContent {...props} />
+    </IssueProvider>
+  );
+});
 
-export const ExplainIssueDialog = defineModal<
-  ExplainIssueDialogProps,
-  void
->(ExplainIssueDialogImpl);
+export const ExplainIssueDialog = defineModal<ExplainIssueDialogProps, void>(
+  ExplainIssueDialogImpl
+);

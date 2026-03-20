@@ -13,9 +13,9 @@ export const KanbanBadge = ({ name, color, className }: KanbanBadgeProps) => {
     <span
       className={cn(
         'inline-flex items-center justify-center',
-        'h-[22px] px-2 gap-1.5',
-        'bg-secondary/40 rounded-full border border-border/10',
-        'text-[11px] text-normal font-medium tracking-wide',
+        'h-5 min-w-[20px] px-1.5',
+        'bg-secondary/60 rounded-full border border-border/20',
+        'text-[10px] text-normal font-bold tracking-tight',
         'whitespace-nowrap',
         className
       )}

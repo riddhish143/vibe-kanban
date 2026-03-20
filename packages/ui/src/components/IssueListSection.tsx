@@ -85,8 +85,8 @@ export function IssueListSection({
           />
           <StatusDot color={status.color} />
           <span className="text-base font-medium text-high">{status.name}</span>
+          <KanbanBadge name={String(issueIds.length)} />
         </div>
-        <KanbanBadge name={String(issueIds.length)} />
       </button>
 
       {/* Section Content - Droppable area */}
