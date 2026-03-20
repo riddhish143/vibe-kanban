@@ -10,7 +10,8 @@ use api_types::{
     GetInvitationResponse, GetOrganizationResponse, HandoffInitRequest, HandoffInitResponse,
     HandoffRedeemRequest, HandoffRedeemResponse, Issue, IssueAssignee, IssueComment,
     IssueRelationship, IssueTag, ListAttachmentsResponse, ListInvitationsResponse,
-    ListIssueAssigneesResponse, ListIssueRelationshipsResponse, ListIssueTagsResponse,
+    ListIssueAssigneesResponse, ListIssueCommentsResponse, ListIssueRelationshipsResponse,
+    ListIssueTagsResponse,
     ListIssuesResponse, ListMembersResponse, ListOrganizationsResponse,
     ListProjectStatusesResponse, ListProjectsResponse, ListPullRequestsResponse, ListTagsResponse,
     MutationResponse, Organization, ProfileResponse, RevokeInvitationRequest, SearchIssuesRequest,
@@ -808,6 +809,15 @@ impl RemoteClient {
     }
 
     // ── Issue Comments ──────────────────────────────────────────────────
+
+    /// Lists comments for an issue.
+    pub async fn list_issue_comments(
+        &self,
+        issue_id: Uuid,
+    ) -> Result<ListIssueCommentsResponse, RemoteClientError> {
+        self.get_authed(&format!("/v1/issue_comments?issue_id={issue_id}"))
+            .await
+    }
 
     /// Creates a new issue comment.
     pub async fn create_issue_comment(

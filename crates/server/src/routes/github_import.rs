@@ -173,6 +173,45 @@ async fn import_github_issues(
             } else {
                 updated_count += 1;
             }
+
+            // Re-sync comments: fetch existing comments, then import any new ones
+            // from GitHub that haven't been imported yet.
+            let existing_comments = client
+                .list_issue_comments(existing_issue_id)
+                .await
+                .map(|r| r.issue_comments)
+                .unwrap_or_default();
+            let existing_messages: std::collections::HashSet<String> = existing_comments
+                .iter()
+                .map(|c| c.message.clone())
+                .collect();
+
+            if let Ok(gh_comments) =
+                fetch_issue_comments(&github_issue.comments_url, github_token.as_deref()).await
+            {
+                for comment in &gh_comments {
+                    let message = build_comment_message(comment);
+                    if existing_messages.contains(&message) {
+                        continue;
+                    }
+                    if let Err(err) = client
+                        .create_issue_comment(&api_types::CreateIssueCommentRequest {
+                            id: None,
+                            issue_id: existing_issue_id,
+                            message,
+                            parent_id: None,
+                        })
+                        .await
+                    {
+                        failures.push(ImportGitHubIssueFailure {
+                            github_issue_number: github_issue.number as i32,
+                            title: github_issue.title.clone(),
+                            message: format!("Failed to sync a comment on re-import: {err}"),
+                        });
+                    }
+                }
+            }
+
             continue;
         }
 
@@ -223,7 +262,7 @@ async fn import_github_issues(
                 }
             };
 
-        for (idx, comment) in comments.iter().enumerate() {
+        for comment in &comments {
             if let Err(err) = client
                 .create_issue_comment(&api_types::CreateIssueCommentRequest {
                     id: None,
@@ -233,17 +272,11 @@ async fn import_github_issues(
                 })
                 .await
             {
-                let skipped = comments.len() - idx;
                 failures.push(ImportGitHubIssueFailure {
                     github_issue_number: github_issue.number as i32,
                     title: github_issue.title.clone(),
-                    message: format!(
-                        "Issue imported, but failed to import a comment: {err}; {skipped} comment(s) skipped for issue #{}: {}",
-                        github_issue.number,
-                        github_issue.title
-                    ),
+                    message: format!("Issue imported, but failed to import a comment: {err}"),
                 });
-                break;
             }
         }
     }
