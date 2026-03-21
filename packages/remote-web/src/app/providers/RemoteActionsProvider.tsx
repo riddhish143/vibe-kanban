@@ -7,7 +7,7 @@ import {
 } from "react";
 import { useParams } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import type { Workspace } from "shared/types";
+import { ThemeMode, type Workspace } from "shared/types";
 import {
   ActionsContext,
   type ActionsContextValue,
@@ -25,6 +25,7 @@ import { SettingsDialog } from "@/shared/dialogs/settings/SettingsDialog";
 import { useAppNavigation } from "@/shared/hooks/useAppNavigation";
 import { useAppRuntime } from "@/shared/hooks/useAppRuntime";
 import { useOrganizationStore } from "@/shared/stores/useOrganizationStore";
+import { useUserSystem } from "@/shared/hooks/useUserSystem";
 import {
   buildKanbanIssueComposerKey,
   openKanbanIssueComposer,
@@ -47,6 +48,7 @@ export function RemoteActionsProvider({
   const appNavigation = useAppNavigation();
   const queryClient = useQueryClient();
   const { projectId, hostId } = useParams({ strict: false });
+  const { config, updateAndSaveConfig } = useUserSystem();
   const userCtx = useContext(UserContext);
   const selectedOrgId = useOrganizationStore((s) => s.selectedOrgId);
   const [defaultCreateStatusId, setDefaultCreateStatusId] = useState<
@@ -98,6 +100,13 @@ export function RemoteActionsProvider({
     noOpSelection("Relationship selection");
   }, []);
 
+  const setTheme = useCallback(
+    (theme: ThemeMode) => {
+      void updateAndSaveConfig({ theme });
+    },
+    [updateAndSaveConfig],
+  );
+
   const executorContext = useMemo<ActionExecutorContext>(
     () => ({
       appNavigation,
@@ -129,6 +138,8 @@ export function RemoteActionsProvider({
       kanbanProjectId: projectId,
       projectMutations: projectMutations ?? undefined,
       remoteWorkspaces: userCtx?.workspaces ?? [],
+      theme: config?.theme ?? ThemeMode.SYSTEM,
+      setTheme,
       runtime,
     }),
     [
@@ -146,6 +157,8 @@ export function RemoteActionsProvider({
       projectId,
       projectMutations,
       userCtx?.workspaces,
+      config?.theme,
+      setTheme,
     ],
   );
 

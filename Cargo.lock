@@ -7017,6 +7017,7 @@ dependencies = [
  "git-host",
  "git2",
  "http",
+ "ignore",
  "local-deployment",
  "mime_guess",
  "os_info",

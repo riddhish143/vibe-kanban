@@ -54,6 +54,7 @@ url = "2.5"
 rand = { version = "0.8", features = ["std"] }
 sha2 = "0.10"
 tokio-tungstenite = { version = "0.26", features = ["rustls-tls-native-roots"] }
+ignore = "0.4"
 
 [build-dependencies]
 dotenv = "0.15"

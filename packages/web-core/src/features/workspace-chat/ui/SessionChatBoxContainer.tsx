@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useDropzone } from 'react-dropzone';
+import { FolderSimpleIcon } from '@phosphor-icons/react';
 import {
   type AskUserQuestionItem,
   BaseAgentCapability,
@@ -40,6 +41,7 @@ import {
   SessionChatBox,
   type ExecutionStatus,
   type SessionChatBoxEditorRenderProps,
+  type SessionToolbarActionItem,
 } from '@vibe/ui/components/SessionChatBox';
 import { ModelSelectorContainer } from '@/shared/components/ModelSelectorContainer';
 import {
@@ -54,6 +56,7 @@ import {
   isActionEnabled,
   isActionVisible,
   type ActionDefinition,
+  resolveLabel,
 } from '@/shared/types/actions';
 import { SettingsDialog } from '@/shared/dialogs/settings/SettingsDialog';
 import { useActionVisibilityContext } from '@/shared/hooks/useActionVisibilityContext';
@@ -189,6 +192,14 @@ export function SessionChatBoxContainer(props: SessionChatBoxContainerProps) {
       rightMainPanelMode === RIGHT_MAIN_PANEL_MODES.CHANGES
         ? null
         : RIGHT_MAIN_PANEL_MODES.CHANGES
+    );
+  }, [rightMainPanelMode, setRightMainPanelMode]);
+
+  const handleViewFiles = useCallback(() => {
+    setRightMainPanelMode(
+      rightMainPanelMode === RIGHT_MAIN_PANEL_MODES.FILES
+        ? null
+        : RIGHT_MAIN_PANEL_MODES.FILES
     );
   }, [rightMainPanelMode, setRightMainPanelMode]);
 
@@ -731,14 +742,14 @@ export function SessionChatBoxContainer(props: SessionChatBoxContainerProps) {
     [actionCtx]
   );
 
-  const toolbarActionItems = useMemo(
-    () =>
-      toolbarActionsList.flatMap((action) => {
+  const toolbarActionItems = useMemo(() => {
+    const actionItems: SessionToolbarActionItem[] = toolbarActionsList.flatMap(
+      (action) => {
         if (isSpecialIcon(action.icon)) {
           return [];
         }
 
-        const label = action.label;
+        const label = resolveLabel(action);
 
         return [
           {
@@ -750,9 +761,33 @@ export function SessionChatBoxContainer(props: SessionChatBoxContainerProps) {
             onClick: () => handleToolbarAction(action),
           },
         ];
-      }),
-    [toolbarActionsList, actionCtx, handleToolbarAction]
-  );
+      }
+    );
+
+    if (!disableViewCode && workspaceId) {
+      actionItems.unshift({
+        id: 'toggle-files-panel',
+        icon: FolderSimpleIcon,
+        label: 'Toggle files panel',
+        tooltip:
+          rightMainPanelMode === RIGHT_MAIN_PANEL_MODES.FILES
+            ? 'Hide files panel'
+            : 'Show files panel',
+        disabled: false,
+        onClick: handleViewFiles,
+      });
+    }
+
+    return actionItems;
+  }, [
+    actionCtx,
+    disableViewCode,
+    handleToolbarAction,
+    handleViewFiles,
+    rightMainPanelMode,
+    toolbarActionsList,
+    workspaceId,
+  ]);
 
   // Handle approve action
   const handleApprove = useCallback(async () => {

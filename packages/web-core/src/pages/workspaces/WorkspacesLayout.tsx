@@ -33,6 +33,7 @@ import { CreateChatBoxContainer } from '@/shared/components/CreateChatBoxContain
 import { PreviewBrowserContainer } from './PreviewBrowserContainer';
 import { WorkspacesGuideDialog } from '@/shared/dialogs/shared/WorkspacesGuideDialog';
 import { useUserSystem } from '@/shared/hooks/useUserSystem';
+import { WorkspaceFilesPanelContainer } from './WorkspaceFilesPanelContainer';
 
 import {
   PERSIST_KEYS,
@@ -244,6 +245,20 @@ export function WorkspacesLayout() {
               )}
             </div>
 
+            {/* Files tab */}
+            <div
+              className={cn(
+                'flex-1 min-h-0 overflow-hidden',
+                mobileTab !== 'files' && 'hidden'
+              )}
+            >
+              {selectedWorkspace?.id && (
+                <WorkspaceFilesPanelContainer
+                  workspaceId={selectedWorkspace.id}
+                />
+              )}
+            </div>
+
             {/* Logs tab */}
             <div
               className={cn(
@@ -359,6 +374,12 @@ export function WorkspacesLayout() {
                   selectedWorkspace?.id && (
                     <ChangesPanelContainer
                       className=""
+                      workspaceId={selectedWorkspace.id}
+                    />
+                  )}
+                {rightMainPanelMode === RIGHT_MAIN_PANEL_MODES.FILES &&
+                  selectedWorkspace?.id && (
+                    <WorkspaceFilesPanelContainer
                       workspaceId={selectedWorkspace.id}
                     />
                   )}

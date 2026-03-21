@@ -99,6 +99,12 @@ import {
 } from 'shared/types';
 import type { Project as RemoteProject } from 'shared/remote-types';
 import type { WorkspaceWithSession } from '@/shared/types/attempt';
+import type {
+  UpdateWorkspaceRepoFileRequest,
+  UpdateWorkspaceRepoFileResponse,
+  WorkspaceRepoFileContentResponse,
+  WorkspaceRepoTreeResponse,
+} from '@/shared/types/workspaceFiles';
 import { createWorkspaceWithSession } from '@/shared/types/attempt';
 import { makeRequest as makeRemoteRequest } from '@/shared/lib/remoteApi';
 import { makeLocalApiRequest } from '@/shared/lib/localApiTransport';
@@ -487,6 +493,45 @@ export const workspacesApi = {
   getRepos: async (workspaceId: string): Promise<RepoWithTargetBranch[]> => {
     const response = await makeRequest(`/api/workspaces/${workspaceId}/repos`);
     return handleApiResponse<RepoWithTargetBranch[]>(response);
+  },
+
+  getRepoTree: async (
+    workspaceId: string,
+    repoId: string
+  ): Promise<WorkspaceRepoTreeResponse> => {
+    const response = await makeRequest(
+      `/api/workspaces/${workspaceId}/files/tree?repo_id=${encodeURIComponent(repoId)}`
+    );
+    return handleApiResponse<WorkspaceRepoTreeResponse>(response);
+  },
+
+  getRepoFileContent: async (
+    workspaceId: string,
+    repoId: string,
+    path: string
+  ): Promise<WorkspaceRepoFileContentResponse> => {
+    const query = new URLSearchParams({
+      repo_id: repoId,
+      path,
+    });
+    const response = await makeRequest(
+      `/api/workspaces/${workspaceId}/files/content?${query.toString()}`
+    );
+    return handleApiResponse<WorkspaceRepoFileContentResponse>(response);
+  },
+
+  updateRepoFile: async (
+    workspaceId: string,
+    data: UpdateWorkspaceRepoFileRequest
+  ): Promise<UpdateWorkspaceRepoFileResponse> => {
+    const response = await makeRequest(
+      `/api/workspaces/${workspaceId}/files/content`,
+      {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }
+    );
+    return handleApiResponse<UpdateWorkspaceRepoFileResponse>(response);
   },
 
   getFirstUserMessage: async (workspaceId: string): Promise<string | null> => {

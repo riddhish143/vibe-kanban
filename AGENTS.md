@@ -58,7 +58,7 @@ Do not manually edit shared/remote-types.ts, instead edit crates/remote/src/bin/
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **vibe-kanban**; use the GitNexus MCP tools to inspect symbols, relationships, and execution flows safely.
+This project is indexed by GitNexus as **vibe-kanban** (13004 symbols, 30946 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 

@@ -5,6 +5,7 @@ import type { IssuePriority } from 'shared/remote-types';
 
 export const RIGHT_MAIN_PANEL_MODES = {
   CHANGES: 'changes',
+  FILES: 'files',
   LOGS: 'logs',
   PREVIEW: 'preview',
 } as const;
@@ -18,6 +19,7 @@ export type MobileTab =
   | 'workspaces'
   | 'chat'
   | 'changes'
+  | 'files'
   | 'logs'
   | 'preview'
   | 'git';
