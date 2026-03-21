@@ -2,6 +2,35 @@
 
 set -e  # Exit on any error
 
+DESKTOP_MODE=false
+BUILD_DESKTOP=false
+
+for arg in "$@"; do
+  case "$arg" in
+    -d|--desktop)
+      DESKTOP_MODE=true
+      BUILD_DESKTOP=true
+      ;;
+    --all)
+      DESKTOP_MODE=true
+      BUILD_DESKTOP=true
+      ;;
+    -h|--help)
+      echo "Usage: ./local-build.sh [-d|--desktop] [--all]"
+      echo ""
+      echo "  default        Build locally and launch browser mode"
+      echo "  -d, --desktop  Build desktop artifacts and launch desktop mode"
+      echo "  --all          Build desktop artifacts and launch desktop mode"
+      exit 0
+      ;;
+    *)
+      echo "❌ Unknown argument: $arg"
+      echo "Usage: ./local-build.sh [-d|--desktop] [--all]"
+      exit 1
+      ;;
+  esac
+done
+
 # Detect OS and architecture
 OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 ARCH=$(uname -m)
@@ -103,7 +132,7 @@ echo "   - npx-cli/dist/$PLATFORM/vibe-kanban-mcp.zip"
 echo "   - npx-cli/dist/$PLATFORM/vibe-kanban-review.zip"
 
 # Optionally build the Tauri desktop app
-if [[ "$1" == "--desktop" || "$1" == "--all" ]]; then
+if [[ "$BUILD_DESKTOP" == true ]]; then
   # Map to Tauri platform naming
   case "$OS" in
     macos) TAURI_OS="darwin" ;;
@@ -156,6 +185,10 @@ mkdir -p npx-cli/bin
 npx esbuild npx-cli/src/cli.ts --bundle --platform=node --target=node20 --format=cjs --outfile=npx-cli/bin/cli.js --external:adm-zip --banner:js="#!/usr/bin/env node"
 
 echo ""
-echo "🚀 To test locally, run:"
-echo "   cd npx-cli && node bin/cli.js                # browser mode (default)"
-echo "   cd npx-cli && node bin/cli.js --desktop       # desktop mode (requires --desktop or --all build flag)"
+if [[ "$DESKTOP_MODE" == true ]]; then
+  echo "🚀 Launching desktop mode..."
+  (cd npx-cli && node bin/cli.js --desktop)
+else
+  echo "🚀 Launching browser mode..."
+  (cd npx-cli && node bin/cli.js)
+fi

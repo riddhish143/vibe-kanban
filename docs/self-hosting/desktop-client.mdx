@@ -1,0 +1,99 @@
+---
+title: "Desktop Client"
+description: "Build, run, troubleshoot, and release the Tauri desktop client."
+---
+
+# Desktop Client
+
+Vibe Kanban already includes a desktop client built with Tauri 2.
+
+The desktop app keeps the current architecture:
+
+- `packages/local-web` provides the UI
+- `crates/server` provides the local backend runtime
+- `crates/tauri-app` owns the desktop window, updater, notifications, and app lifecycle
+
+## Run the desktop client locally
+
+Use the desktop shell during development when you want to validate native behaviour such as window lifecycle, updater wiring, notifications, or desktop-only settings.
+
+<Steps>
+<Step title="Install dependencies">
+  From the repository root, install JavaScript dependencies:
+
+  ```bash
+  pnpm install
+  ```
+</Step>
+
+<Step title="Start the desktop app in development mode">
+  Run the Tauri development command:
+
+  ```bash
+  pnpm run tauri:dev
+  ```
+
+  This starts the local web frontend and opens the desktop shell against the development runtime.
+</Step>
+
+<Step title="Build a desktop bundle">
+  To produce a local release build, run:
+
+  ```bash
+  pnpm run tauri:build
+  ```
+
+  <Check>
+  Use this build to validate installer output, packaged assets, and release-only behaviour such as embedded server startup.
+  </Check>
+</Step>
+</Steps>
+
+## Troubleshoot the desktop runtime
+
+The desktop app exposes a **Desktop** section in **Settings → General**. Use it when you need support data for a local install.
+
+The Desktop section shows:
+
+- app version
+- package identifier
+- platform and architecture
+- build profile
+- frontend and backend runtime source
+- updater status
+- app data, cache, temp, config, profiles, and credentials paths
+
+Use the built-in actions to:
+
+- copy the desktop diagnostics JSON for bug reports
+- open the relevant folders or reveal config files in the OS file manager
+
+<Tip>
+Closing the desktop window hides the app instead of quitting it. Use your platform’s quit action when you want to stop the desktop runtime completely.
+</Tip>
+
+## Release workflow
+
+Desktop release automation already lives in the GitHub release pipeline.
+
+- `.github/workflows/pre-release.yml` builds Tauri installers and updater artifacts
+- `.github/workflows/publish.yml` promotes the released updater manifest to the live update endpoint
+
+The pre-release workflow currently:
+
+- builds the desktop app for macOS, Windows, and Linux
+- signs and notarises macOS artifacts
+- signs Windows artifacts with Azure Trusted Signing
+- generates `latest.json` for the Tauri updater
+- uploads installers and updater artifacts to R2
+
+## Required release secrets
+
+For production desktop releases, configure secrets for:
+
+- Tauri updater signing
+- Apple signing and notarisation
+- Azure Trusted Signing for Windows
+- R2 upload credentials and public download base
+
+Review `.github/workflows/pre-release.yml` and `.github/workflows/publish.yml` before changing the release process. Those workflows are the source of truth for the current desktop packaging pipeline.

@@ -9286,6 +9286,7 @@ dependencies = [
  "async-trait",
  "objc2-web-kit",
  "rustls",
+ "serde",
  "serde_json",
  "server",
  "services",

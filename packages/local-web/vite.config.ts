@@ -128,6 +128,7 @@ export default defineConfig({
     ],
   },
   server: {
+    host: '127.0.0.1',
     port: parseInt(process.env.FRONTEND_PORT || '3000'),
     proxy: {
       '/api': {

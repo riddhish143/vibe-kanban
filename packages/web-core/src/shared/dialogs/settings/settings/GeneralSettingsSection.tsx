@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { cloneDeep, isEqual, merge } from 'lodash';
 import {
+  ArrowClockwiseIcon,
+  CopyIcon,
   FolderSimpleIcon,
   SpeakerHighIcon,
   SpinnerIcon,
@@ -26,7 +28,10 @@ import {
   getSortedExecutorVariantKeys,
 } from '@/shared/lib/executor';
 import { useTheme } from '@/shared/hooks/useTheme';
-import { useUserSystem } from '@/shared/hooks/useUserSystem';
+import {
+  type DesktopSupportPathKind,
+  useUserSystem,
+} from '@/shared/hooks/useUserSystem';
 import { TagManager } from '@/shared/components/TagManager';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import {
@@ -66,13 +71,26 @@ export function GeneralSettingsSection() {
       defaultValue: 'Browser Default',
     })
   );
-  const { config, loading, updateAndSaveConfig, profiles } = useUserSystem();
+  const {
+    appVersion,
+    config,
+    loading,
+    updateAndSaveConfig,
+    profiles,
+    desktopSupport,
+    desktopSupportLoading,
+    reloadDesktopSupport,
+    openDesktopSupportPath,
+  } = useUserSystem();
 
   const [draft, setDraft] = useState(() => (config ? cloneDeep(config) : null));
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [desktopActionMessage, setDesktopActionMessage] = useState<
+    string | null
+  >(null);
   const [branchPrefixError, setBranchPrefixError] = useState<string | null>(
     null
   );
@@ -202,6 +220,29 @@ export function GeneralSettingsSection() {
     setDraft(cloneDeep(config));
     setDirty(false);
   };
+
+  const handleCopyDesktopDiagnostics = useCallback(async () => {
+    if (!desktopSupport) return;
+
+    try {
+      await navigator.clipboard.writeText(
+        JSON.stringify(desktopSupport, null, 2)
+      );
+      setDesktopActionMessage('Desktop diagnostics copied to your clipboard.');
+    } catch (err) {
+      setDesktopActionMessage('Failed to copy desktop diagnostics.');
+    }
+  }, [desktopSupport]);
+
+  const handleOpenDesktopPath = useCallback(
+    async (kind: DesktopSupportPathKind) => {
+      const didOpen = await openDesktopSupportPath(kind);
+      setDesktopActionMessage(
+        didOpen ? null : 'Failed to open the selected desktop path.'
+      );
+    },
+    [openDesktopSupportPath]
+  );
 
   const resetOnboarding = async () => {
     if (!config) return;
@@ -764,6 +805,137 @@ export function GeneralSettingsSection() {
         />
       </SettingsCard>
 
+      {(desktopSupportLoading || desktopSupport) && (
+        <SettingsCard
+          title="Desktop"
+          description="Desktop runtime details and support tools for the Tauri app."
+        >
+          {desktopSupportLoading ? (
+            <div className="flex items-center gap-2 text-sm text-low">
+              <SpinnerIcon
+                className="size-icon-sm animate-spin text-brand"
+                weight="bold"
+              />
+              <span>Loading desktop runtime information…</span>
+            </div>
+          ) : (
+            <>
+              {desktopActionMessage && (
+                <div className="rounded-sm border border-border bg-secondary/50 p-base text-sm text-low">
+                  {desktopActionMessage}
+                </div>
+              )}
+
+              <SettingsField
+                label="Runtime"
+                description="Use this information for desktop troubleshooting, release verification, and support tickets."
+              >
+                <div className="grid gap-2 md:grid-cols-2">
+                  <DesktopInfoValue
+                    label="App version"
+                    value={
+                      desktopSupport?.appVersion ?? appVersion ?? 'Unknown'
+                    }
+                  />
+                  <DesktopInfoValue
+                    label="Package identifier"
+                    value={desktopSupport?.packageIdentifier ?? 'Unknown'}
+                  />
+                  <DesktopInfoValue
+                    label="Platform"
+                    value={
+                      desktopSupport
+                        ? `${desktopSupport.platform} (${desktopSupport.arch})`
+                        : 'Unknown'
+                    }
+                  />
+                  <DesktopInfoValue
+                    label="Build profile"
+                    value={desktopSupport?.buildProfile ?? 'Unknown'}
+                  />
+                  <DesktopInfoValue
+                    label="Frontend source"
+                    value={desktopSupport?.frontendSource ?? 'Unknown'}
+                  />
+                  <DesktopInfoValue
+                    label="Backend source"
+                    value={desktopSupport?.backendSource ?? 'Unknown'}
+                  />
+                  <DesktopInfoValue
+                    label="Updater"
+                    value={
+                      desktopSupport?.updaterEnabled
+                        ? 'Enabled'
+                        : 'Disabled in this build'
+                    }
+                  />
+                  <DesktopInfoValue
+                    label="Window close behaviour"
+                    value={desktopSupport?.closeAction ?? 'Unknown'}
+                  />
+                </div>
+              </SettingsField>
+
+              <DesktopPathField
+                label="Application data directory"
+                value={desktopSupport?.dataDir ?? ''}
+                onOpen={() => void handleOpenDesktopPath('dataDir')}
+              />
+
+              <DesktopPathField
+                label="Cache directory"
+                value={desktopSupport?.cacheDir ?? ''}
+                onOpen={() => void handleOpenDesktopPath('cacheDir')}
+              />
+
+              <DesktopPathField
+                label="Temporary directory"
+                value={desktopSupport?.tempDir ?? ''}
+                onOpen={() => void handleOpenDesktopPath('tempDir')}
+              />
+
+              <DesktopPathField
+                label="Config file"
+                value={desktopSupport?.configFile ?? ''}
+                onOpen={() => void handleOpenDesktopPath('configFile')}
+              />
+
+              <DesktopPathField
+                label="Profiles file"
+                value={desktopSupport?.profilesFile ?? ''}
+                onOpen={() => void handleOpenDesktopPath('profilesFile')}
+              />
+
+              <DesktopPathField
+                label="Credentials file"
+                value={desktopSupport?.credentialsFile ?? ''}
+                onOpen={() => void handleOpenDesktopPath('credentialsFile')}
+              />
+
+              <SettingsField
+                label="Support tools"
+                description="Copy this JSON into bug reports or open the relevant folders while debugging the desktop runtime."
+              >
+                <div className="flex flex-wrap gap-2">
+                  <PrimaryButton
+                    variant="tertiary"
+                    value="Copy diagnostics JSON"
+                    actionIcon={CopyIcon}
+                    onClick={() => void handleCopyDesktopDiagnostics()}
+                  />
+                  <PrimaryButton
+                    variant="tertiary"
+                    value="Refresh desktop info"
+                    actionIcon={ArrowClockwiseIcon}
+                    onClick={() => void reloadDesktopSupport()}
+                  />
+                </div>
+              </SettingsField>
+            </>
+          )}
+        </SettingsCard>
+      )}
+
       {/* Message Input */}
       <SettingsCard
         title={t('settings.general.messageInput.title')}
@@ -844,6 +1016,44 @@ export function GeneralSettingsSection() {
         onDiscard={handleDiscard}
       />
     </>
+  );
+}
+
+function DesktopInfoValue({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-sm border border-border bg-secondary px-base py-half">
+      <div className="text-xs uppercase tracking-wide text-low">{label}</div>
+      <div className="mt-1 break-all font-ibm-plex-mono text-sm text-high">
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function DesktopPathField({
+  label,
+  value,
+  onOpen,
+}: {
+  label: string;
+  value: string;
+  onOpen: () => void;
+}) {
+  return (
+    <SettingsField label={label}>
+      <div className="flex flex-col gap-2 md:flex-row">
+        <div className="min-w-0 flex-1 rounded-sm border border-border bg-secondary px-base py-half break-all font-ibm-plex-mono text-sm text-high">
+          {value}
+        </div>
+        <PrimaryButton
+          variant="tertiary"
+          value="Open"
+          actionIcon={FolderSimpleIcon}
+          onClick={onOpen}
+          className="shrink-0"
+        />
+      </div>
+    </SettingsField>
   );
 }
 

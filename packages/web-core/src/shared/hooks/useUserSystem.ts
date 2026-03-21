@@ -8,6 +8,32 @@ import type {
 } from 'shared/types';
 import type { ExecutorProfile } from 'shared/types';
 
+export type DesktopSupportPathKind =
+  | 'dataDir'
+  | 'cacheDir'
+  | 'tempDir'
+  | 'configFile'
+  | 'profilesFile'
+  | 'credentialsFile';
+
+export interface DesktopSupportInfo {
+  appVersion: string;
+  packageIdentifier: string;
+  platform: string;
+  arch: string;
+  buildProfile: string;
+  frontendSource: string;
+  backendSource: string;
+  updaterEnabled: boolean;
+  closeAction: string;
+  dataDir: string;
+  cacheDir: string;
+  tempDir: string;
+  configFile: string;
+  profilesFile: string;
+  credentialsFile: string;
+}
+
 export interface UserSystemState {
   appVersion: string | null;
   config: Config | null;
@@ -16,6 +42,7 @@ export interface UserSystemState {
   capabilities: Record<string, BaseAgentCapability[]> | null;
   analyticsUserId: string | null;
   loginStatus: LoginStatus | null;
+  desktopSupport: DesktopSupportInfo | null;
 }
 
 export interface UserSystemContextType {
@@ -35,9 +62,13 @@ export interface UserSystemContextType {
   capabilities: Record<string, BaseAgentCapability[]> | null;
   analyticsUserId: string | null;
   loginStatus: LoginStatus | null;
+  desktopSupport: DesktopSupportInfo | null;
+  desktopSupportLoading: boolean;
   setEnvironment: (env: Environment | null) => void;
   setProfiles: (profiles: Record<string, ExecutorProfile> | null) => void;
   setCapabilities: (caps: Record<string, BaseAgentCapability[]> | null) => void;
+  reloadDesktopSupport: () => Promise<void>;
+  openDesktopSupportPath: (kind: DesktopSupportPathKind) => Promise<boolean>;
 
   // Reload system data
   reloadSystem: () => Promise<void>;

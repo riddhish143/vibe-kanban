@@ -11,9 +11,15 @@ import { configApi } from '@/shared/lib/api';
 import { updateLanguageFromConfig } from '@/i18n/config';
 import { setRemoteApiBase } from '@/shared/lib/remoteApi';
 import {
+  loadDesktopSupportInfo,
+  revealDesktopSupportPath,
+} from '@web/app/lib/desktopSupport';
+import {
+  type DesktopSupportPathKind,
   UserSystemContext,
   type UserSystemContextType,
 } from '@/shared/hooks/useUserSystem';
+import { isTauriApp } from '@/shared/lib/platform';
 
 interface UserSystemProviderProps {
   children: ReactNode;
@@ -21,12 +27,22 @@ interface UserSystemProviderProps {
 
 export function UserSystemProvider({ children }: UserSystemProviderProps) {
   const queryClient = useQueryClient();
+  const isDesktopRuntime = isTauriApp();
 
   const { data: userSystemInfo, isLoading } = useQuery({
     queryKey: ['user-system'],
     queryFn: configApi.getConfig,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
+
+  const { data: desktopSupport, isLoading: isDesktopSupportLoading } = useQuery(
+    {
+      queryKey: ['desktop-support'],
+      queryFn: loadDesktopSupportInfo,
+      enabled: isDesktopRuntime,
+      staleTime: Infinity,
+    }
+  );
 
   const config = userSystemInfo?.config || null;
   const appVersion = userSystemInfo?.version || null;
@@ -107,6 +123,18 @@ export function UserSystemProvider({ children }: UserSystemProviderProps) {
     await queryClient.invalidateQueries({ queryKey: ['user-system'] });
   }, [queryClient]);
 
+  const reloadDesktopSupport = useCallback(async () => {
+    if (!isDesktopRuntime) return;
+    await queryClient.invalidateQueries({ queryKey: ['desktop-support'] });
+  }, [isDesktopRuntime, queryClient]);
+
+  const openDesktopSupportPath = useCallback(
+    async (kind: DesktopSupportPathKind) => {
+      return revealDesktopSupportPath(kind);
+    },
+    []
+  );
+
   const setEnvironment = useCallback(
     (env: Environment | null) => {
       queryClient.setQueryData<UserSystemInfo>(['user-system'], (old) => {
@@ -151,6 +179,7 @@ export function UserSystemProvider({ children }: UserSystemProviderProps) {
         capabilities,
         analyticsUserId,
         loginStatus,
+        desktopSupport: desktopSupport ?? null,
       },
       appVersion,
       config,
@@ -159,12 +188,16 @@ export function UserSystemProvider({ children }: UserSystemProviderProps) {
       capabilities,
       analyticsUserId,
       loginStatus,
+      desktopSupport: desktopSupport ?? null,
+      desktopSupportLoading: isDesktopRuntime && isDesktopSupportLoading,
       updateConfig,
       saveConfig,
       updateAndSaveConfig,
       setEnvironment,
       setProfiles,
       setCapabilities,
+      reloadDesktopSupport,
+      openDesktopSupportPath,
       reloadSystem,
       loading: isLoading,
     }),
@@ -176,6 +209,9 @@ export function UserSystemProvider({ children }: UserSystemProviderProps) {
       capabilities,
       analyticsUserId,
       loginStatus,
+      desktopSupport,
+      isDesktopRuntime,
+      isDesktopSupportLoading,
       updateConfig,
       saveConfig,
       updateAndSaveConfig,
@@ -184,6 +220,8 @@ export function UserSystemProvider({ children }: UserSystemProviderProps) {
       setEnvironment,
       setProfiles,
       setCapabilities,
+      reloadDesktopSupport,
+      openDesktopSupportPath,
     ]
   );
 

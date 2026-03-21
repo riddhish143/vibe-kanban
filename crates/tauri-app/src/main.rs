@@ -4,6 +4,7 @@
 use std::{sync::Arc, time::Duration};
 
 use async_trait::async_trait;
+use serde::{Deserialize, Serialize};
 use services::services::{
     config::load_config_from_file,
     notification::{NotificationService, PushNotifier, set_global_push_notifier},
@@ -18,7 +19,9 @@ use tokio::{sync::Mutex, time::sleep};
 use tokio_util::sync::CancellationToken;
 use tracing_subscriber::{EnvFilter, prelude::*};
 use utils::{
-    assets::config_path,
+    assets::{asset_dir, config_path, credentials_path, profiles_path},
+    cache_dir,
+    path::get_vibe_kanban_temp_dir,
     sentry::{self as sentry_utils, SentrySource, sentry_layer},
 };
 use uuid::Uuid;
@@ -32,12 +35,86 @@ struct TauriNotifier {
     app_handle: tauri::AppHandle,
 }
 
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct DesktopSupportInfo {
+    app_version: String,
+    package_identifier: String,
+    platform: String,
+    arch: String,
+    build_profile: &'static str,
+    frontend_source: &'static str,
+    backend_source: &'static str,
+    updater_enabled: bool,
+    close_action: &'static str,
+    data_dir: String,
+    cache_dir: String,
+    temp_dir: String,
+    config_file: String,
+    profiles_file: String,
+    credentials_file: String,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize)]
+#[serde(rename_all = "camelCase")]
+enum DesktopSupportPathKind {
+    DataDir,
+    CacheDir,
+    TempDir,
+    ConfigFile,
+    ProfilesFile,
+    CredentialsFile,
+}
+
+enum DesktopSupportPathTarget {
+    Directory(std::path::PathBuf),
+    File(std::path::PathBuf),
+}
+
 #[tauri::command]
 async fn show_system_notification(title: String, body: String) -> Result<(), String> {
     let config = load_config_from_file(&config_path()).await;
     let notification_service = NotificationService::new(Arc::new(tokio::sync::RwLock::new(config)));
     notification_service.notify(&title, &body, None).await;
     Ok(())
+}
+
+#[tauri::command]
+fn get_desktop_support_info(app: tauri::AppHandle) -> Result<DesktopSupportInfo, String> {
+    Ok(build_desktop_support_info(&app))
+}
+
+#[tauri::command]
+fn reveal_desktop_support_path(
+    app: tauri::AppHandle,
+    kind: DesktopSupportPathKind,
+) -> Result<(), String> {
+    let target = resolve_desktop_support_path(kind);
+
+    match target {
+        DesktopSupportPathTarget::Directory(path) => {
+            std::fs::create_dir_all(&path)
+                .map_err(|err| format!("Failed to create directory {}: {err}", path.display()))?;
+            app.opener()
+                .open_path(path.to_string_lossy().into_owned(), None::<String>)
+                .map_err(|err| format!("Failed to open {}: {err}", path.display()))
+        }
+        DesktopSupportPathTarget::File(path) => {
+            if path.exists() {
+                app.opener()
+                    .reveal_item_in_dir(&path)
+                    .map_err(|err| format!("Failed to reveal {}: {err}", path.display()))
+            } else {
+                let parent = path.parent().unwrap_or(&path).to_path_buf();
+                std::fs::create_dir_all(&parent).map_err(|err| {
+                    format!("Failed to create directory {}: {err}", parent.display())
+                })?;
+                app.opener()
+                    .open_path(parent.to_string_lossy().into_owned(), None::<String>)
+                    .map_err(|err| format!("Failed to open {}: {err}", parent.display()))
+            }
+        }
+    }
 }
 
 #[async_trait]
@@ -97,7 +174,11 @@ fn main() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
-        .invoke_handler(tauri::generate_handler![show_system_notification]);
+        .invoke_handler(tauri::generate_handler![
+            show_system_notification,
+            get_desktop_support_info,
+            reveal_desktop_support_path
+        ]);
 
     // Only register the updater plugin in release builds — dev builds have a
     // placeholder endpoint that fails config deserialization.
@@ -234,6 +315,55 @@ fn main() {
                 tauri::async_runtime::block_on(install_pending_update(_app, &pending_for_exit));
             }
         });
+}
+
+fn build_desktop_support_info(app: &tauri::AppHandle) -> DesktopSupportInfo {
+    let package_info = app.package_info();
+
+    DesktopSupportInfo {
+        app_version: package_info.version.to_string(),
+        package_identifier: app.config().identifier.clone(),
+        platform: std::env::consts::OS.to_string(),
+        arch: std::env::consts::ARCH.to_string(),
+        build_profile: if cfg!(debug_assertions) {
+            "debug"
+        } else {
+            "release"
+        },
+        frontend_source: if cfg!(debug_assertions) {
+            "external-dev-server"
+        } else {
+            "embedded-assets"
+        },
+        backend_source: if cfg!(debug_assertions) {
+            "external-dev-server"
+        } else {
+            "embedded-server"
+        },
+        updater_enabled: !cfg!(debug_assertions),
+        close_action: "hide-to-background",
+        data_dir: asset_dir().display().to_string(),
+        cache_dir: cache_dir().display().to_string(),
+        temp_dir: get_vibe_kanban_temp_dir().display().to_string(),
+        config_file: config_path().display().to_string(),
+        profiles_file: profiles_path().display().to_string(),
+        credentials_file: credentials_path().display().to_string(),
+    }
+}
+
+fn resolve_desktop_support_path(kind: DesktopSupportPathKind) -> DesktopSupportPathTarget {
+    match kind {
+        DesktopSupportPathKind::DataDir => DesktopSupportPathTarget::Directory(asset_dir()),
+        DesktopSupportPathKind::CacheDir => DesktopSupportPathTarget::Directory(cache_dir()),
+        DesktopSupportPathKind::TempDir => {
+            DesktopSupportPathTarget::Directory(get_vibe_kanban_temp_dir())
+        }
+        DesktopSupportPathKind::ConfigFile => DesktopSupportPathTarget::File(config_path()),
+        DesktopSupportPathKind::ProfilesFile => DesktopSupportPathTarget::File(profiles_path()),
+        DesktopSupportPathKind::CredentialsFile => {
+            DesktopSupportPathTarget::File(credentials_path())
+        }
+    }
 }
 
 /// Disable trackpad/touchpad pinch-to-zoom on macOS while keeping Cmd+/- zoom.
@@ -396,5 +526,42 @@ async fn run_periodic_update_checks(
     loop {
         sleep(UPDATE_CHECK_INTERVAL).await;
         check_for_updates(app.clone(), pending_update.clone()).await;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{DesktopSupportPathKind, DesktopSupportPathTarget, resolve_desktop_support_path};
+
+    #[test]
+    fn resolve_desktop_support_path_returns_directories_for_runtime_dirs() {
+        assert!(matches!(
+            resolve_desktop_support_path(DesktopSupportPathKind::DataDir),
+            DesktopSupportPathTarget::Directory(_)
+        ));
+        assert!(matches!(
+            resolve_desktop_support_path(DesktopSupportPathKind::CacheDir),
+            DesktopSupportPathTarget::Directory(_)
+        ));
+        assert!(matches!(
+            resolve_desktop_support_path(DesktopSupportPathKind::TempDir),
+            DesktopSupportPathTarget::Directory(_)
+        ));
+    }
+
+    #[test]
+    fn resolve_desktop_support_path_returns_files_for_config_artifacts() {
+        assert!(matches!(
+            resolve_desktop_support_path(DesktopSupportPathKind::ConfigFile),
+            DesktopSupportPathTarget::File(_)
+        ));
+        assert!(matches!(
+            resolve_desktop_support_path(DesktopSupportPathKind::ProfilesFile),
+            DesktopSupportPathTarget::File(_)
+        ));
+        assert!(matches!(
+            resolve_desktop_support_path(DesktopSupportPathKind::CredentialsFile),
+            DesktopSupportPathTarget::File(_)
+        ));
     }
 }
