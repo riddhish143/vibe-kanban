@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=IBM+Plex+Mono:ital,wght@0,100..700;1,100..700&family=Noto+Emoji:wght@300..700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Geist+Mono:wght@100..900&family=IBM+Plex+Mono:ital,wght@0,100..700;1,100..700&family=Noto+Emoji:wght@300..700&display=swap');
 
 @font-face {
   font-family: 'Sagittaire Display';
@@ -279,7 +279,7 @@ html {
   #root {
     @apply min-h-screen;
     @apply font-normal;
-    @apply bg-background text-foreground font-dm-sans;
+    @apply bg-background text-foreground font-geist-mono;
   }
 
   *:focus {
@@ -292,8 +292,8 @@ html {
   h4,
   h5,
   h6 {
-    @apply font-sagittaire-display;
-    font-weight: 200;
+    @apply font-geist-mono;
+    font-weight: 400;
   }
 
   .logo {
@@ -457,6 +457,45 @@ html {
     .create-issue-attention::before {
       animation: none;
     }
+  }
+
+  /* Premium dashed border for Kanban cards on hover with Magnetic Edge Effect */
+  .kanban-card-premium-hover {
+    @apply relative;
+  }
+
+  /* Layer 1: Subtle base dashed border */
+  .kanban-card-premium-hover::before {
+    content: '';
+    @apply absolute inset-0 pointer-events-none rounded-[inherit] transition-opacity duration-500 ease-in-out opacity-0;
+    border: 1.5px dashed hsl(var(--text-low) / 0.25);
+    margin: -1px;
+    z-index: 10;
+  }
+
+  /* Layer 2: Interactive "Magnetic" glow dashed border */
+  .kanban-card-premium-hover::after {
+    content: '';
+    @apply absolute inset-0 pointer-events-none rounded-[inherit] transition-opacity duration-300 ease-out opacity-0;
+    border: 1.5px dashed hsl(var(--foreground) / 0.9);
+    margin: -1px;
+    z-index: 11;
+    /* This layer is masked by a radial gradient centered at the cursor */
+    mask-image: radial-gradient(
+      circle 120px at var(--mouse-x, 50%) var(--mouse-y, 50%),
+      rgb(0, 0, 0) 0%,
+      transparent 100%
+    );
+    -webkit-mask-image: radial-gradient(
+      circle 120px at var(--mouse-x, 50%) var(--mouse-y, 50%),
+      black 0%,
+      transparent 100%
+    );
+  }
+
+  .kanban-card-premium-hover:hover::before,
+  .kanban-card-premium-hover:hover::after {
+    @apply opacity-100;
   }
 }
 

@@ -107,6 +107,7 @@ export const KanbanCard = ({
           <Card
             className={cn(
               'outline-none flex-col border border-border/10 bg-card dark:bg-[#1c1c1c] rounded-xl mb-3 shadow-md transition-all',
+              'kanban-card-premium-hover',
               snapshot.isDragging && 'cursor-grabbing scale-[1.02] shadow-xl ring-1 ring-border',
               isOpen && 'ring-2 ring-primary ring-inset',
               className
@@ -131,6 +132,13 @@ export const KanbanCard = ({
                   }
                 : undefined
             }
+            onMouseMove={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect();
+              const x = e.clientX - rect.left;
+              const y = e.clientY - rect.top;
+              e.currentTarget.style.setProperty('--mouse-x', `${x}px`);
+              e.currentTarget.style.setProperty('--mouse-y', `${y}px`);
+            }}
             onKeyDown={onKeyDown}
           >
             {isMobile ? (

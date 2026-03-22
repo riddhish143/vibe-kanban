@@ -134,7 +134,7 @@ function scratchDataToStore(data: UiPreferencesData): {
     paneSizes: (data.pane_sizes ?? {}) as Record<string, number | string>,
     collapsedPaths: (data.collapsed_paths ?? {}) as Record<string, string[]>,
     fileSearchRepoId: data.file_search_repo_id ?? legacyFileSearchRepoId,
-    isLeftSidebarVisible: data.is_left_sidebar_visible ?? true,
+    isLeftSidebarVisible: data.is_left_sidebar_visible ?? false,
     isRightSidebarVisible: data.is_right_sidebar_visible ?? true,
     isTerminalVisible: data.is_terminal_visible ?? true,
     workspacePanelStates,
