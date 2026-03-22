@@ -458,6 +458,45 @@ html {
       animation: none;
     }
   }
+
+  /* Premium dashed border for Kanban cards on hover with Magnetic Edge Effect */
+  .kanban-card-premium-hover {
+    @apply relative;
+  }
+
+  /* Layer 1: Subtle base dashed border */
+  .kanban-card-premium-hover::before {
+    content: '';
+    @apply absolute inset-0 pointer-events-none rounded-[inherit] transition-opacity duration-500 ease-in-out opacity-0;
+    border: 1.5px dashed hsl(var(--text-low) / 0.25);
+    margin: -1px;
+    z-index: 10;
+  }
+
+  /* Layer 2: Interactive "Magnetic" glow dashed border */
+  .kanban-card-premium-hover::after {
+    content: '';
+    @apply absolute inset-0 pointer-events-none rounded-[inherit] transition-opacity duration-300 ease-out opacity-0;
+    border: 1.5px dashed hsl(var(--foreground) / 0.9);
+    margin: -1px;
+    z-index: 11;
+    /* This layer is masked by a radial gradient centered at the cursor */
+    mask-image: radial-gradient(
+      circle 120px at var(--mouse-x, 50%) var(--mouse-y, 50%),
+      rgb(0, 0, 0) 0%,
+      transparent 100%
+    );
+    -webkit-mask-image: radial-gradient(
+      circle 120px at var(--mouse-x, 50%) var(--mouse-y, 50%),
+      black 0%,
+      transparent 100%
+    );
+  }
+
+  .kanban-card-premium-hover:hover::before,
+  .kanban-card-premium-hover:hover::after {
+    @apply opacity-100;
+  }
 }
 
 /* Color emoji utility - uses system color emoji fonts for reactions */
