@@ -279,7 +279,7 @@ html {
   #root {
     @apply min-h-screen;
     @apply font-normal;
-    @apply bg-background text-foreground font-dm-sans;
+    @apply bg-background text-foreground font-geist-mono;
   }
 
   *:focus {
@@ -292,8 +292,8 @@ html {
   h4,
   h5,
   h6 {
-    @apply font-sagittaire-display;
-    font-weight: 200;
+    @apply font-geist-mono;
+    font-weight: 400;
   }
 
   .logo {

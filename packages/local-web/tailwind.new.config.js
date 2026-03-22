@@ -137,10 +137,11 @@ module.exports = {
         half: getSize('base', 0.5),
       },
       fontFamily: {
+        'geist-mono': ['"Geist Mono"', '"Noto Emoji"', 'monospace'],
         'sagittaire-display': ['"Sagittaire Display"', 'serif'],
-        'dm-sans': ['"DM Sans"', '"Noto Emoji"', 'sans-serif'],
-        'ibm-plex-sans': ['"IBM Plex Sans"', '"Noto Emoji"', 'sans-serif'],
-        'ibm-plex-mono': ['"IBM Plex Mono"', 'monospace'],
+        'dm-sans': ['"Geist Mono"', '"Noto Emoji"', 'monospace'],
+        'ibm-plex-sans': ['"Geist Mono"', '"Noto Emoji"', 'monospace'],
+        'ibm-plex-mono': ['"Geist Mono"', '"Noto Emoji"', 'monospace'],
       },
       keyframes: {
         "accordion-down": {
