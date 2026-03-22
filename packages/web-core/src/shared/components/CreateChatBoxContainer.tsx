@@ -354,7 +354,7 @@ export function CreateChatBoxContainer({
         ctx.fillStyle = canvasBg;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        const fontSize = 12;
+        const fontSize = 8;
         ctx.font = `bold ${fontSize}px monospace`;
         ctx.textBaseline = 'top';
         ctx.textAlign = 'center';
@@ -485,6 +485,20 @@ export function CreateChatBoxContainer({
   return (
     <div className="relative flex flex-1 flex-col bg-primary h-full z-0 overflow-hidden">
       <AsicBackground />
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+            .create-mode-geist,
+            .create-mode-geist * {
+              font-family: "Geist Mono", "IBM Plex Mono", monospace;
+            }
+            .create-mode-heading {
+              font-family: "Geist Mono", "IBM Plex Mono", monospace;
+              letter-spacing: -0.05em;
+            }
+          `,
+        }}
+      />
       <div
         className={`relative z-10 flex flex-1 items-center justify-center px-base pointer-events-none transition-all duration-700 ${
           createWorkspace.isPending
@@ -492,10 +506,10 @@ export function CreateChatBoxContainer({
             : 'blur-0 opacity-100 scale-100'
         }`}
       >
-        <div className="flex w-chat max-w-full flex-col gap-base pointer-events-auto">
+        <div className="create-mode-geist flex w-chat max-w-full flex-col gap-base pointer-events-auto">
           {showRepoPickerStep && (
             <>
-              <h2 className="mb-double text-center text-4xl font-medium tracking-tight text-high">
+              <h2 className="create-mode-heading mb-double text-center text-4xl font-medium tracking-tight text-high">
                 {t('createMode.headings.repoStep')}
               </h2>
               <CreateModeRepoPickerBar
@@ -506,7 +520,7 @@ export function CreateChatBoxContainer({
 
           {showChatStep && (
             <>
-              <h2 className="mb-double text-center text-4xl font-medium tracking-tight text-high">
+              <h2 className="create-mode-heading mb-double text-center text-4xl font-medium tracking-tight text-high">
                 {t('createMode.headings.chatStep')}
               </h2>
 
