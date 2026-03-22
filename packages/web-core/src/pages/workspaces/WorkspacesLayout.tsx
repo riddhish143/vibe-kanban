@@ -127,7 +127,6 @@ export function WorkspacesLayout() {
     isLeftMainPanelVisible,
     isRightSidebarVisible,
     rightMainPanelMode,
-    setLeftSidebarVisible,
     setLeftMainPanelVisible,
   } = useWorkspacePanelState(isCreateMode ? undefined : workspaceId);
 
@@ -157,15 +156,9 @@ export function WorkspacesLayout() {
   // Ensure left panels visible when right main panel hidden
   useEffect(() => {
     if (rightMainPanelMode === null) {
-      setLeftSidebarVisible(true);
       if (!isLeftMainPanelVisible) setLeftMainPanelVisible(true);
     }
-  }, [
-    isLeftMainPanelVisible,
-    rightMainPanelMode,
-    setLeftSidebarVisible,
-    setLeftMainPanelVisible,
-  ]);
+  }, [isLeftMainPanelVisible, rightMainPanelMode, setLeftMainPanelVisible]);
 
   const [rightMainPanelSize, setRightMainPanelSize] = usePaneSize(
     PERSIST_KEYS.rightMainPanel,

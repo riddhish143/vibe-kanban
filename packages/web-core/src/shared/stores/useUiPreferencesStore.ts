@@ -445,7 +445,7 @@ export const useUiPreferencesStore = create<State>()((set, get) => ({
 
   // Global layout state
   layoutMode: 'workspaces' as LayoutMode,
-  isLeftSidebarVisible: true,
+  isLeftSidebarVisible: false,
   isRightSidebarVisible: true,
   isTerminalVisible: true,
   previewRefreshKey: 0,
