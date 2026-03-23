@@ -143,7 +143,7 @@ function SettingsDialogContent({
       {/* Overlay */}
       <div
         data-tauri-drag-region
-        className="fixed inset-0 z-[9998] bg-black/50 animate-in fade-in-0 duration-200"
+        className="app-overlay-backdrop fixed inset-0 z-[9998] animate-in fade-in-0 duration-200"
         onClick={handleCloseWithConfirmation}
       />
       {/* Dialog wrapper - handles positioning */}
@@ -160,7 +160,7 @@ function SettingsDialogContent({
         <div
           className={cn(
             'h-full w-full flex overflow-hidden',
-            'bg-panel/95 backdrop-blur-sm shadow-lg',
+            'app-floating-panel',
             'animate-in fade-in-0 slide-in-from-bottom-4 duration-200',
             // Mobile: full screen, no rounded corners
             'rounded-none border-0',

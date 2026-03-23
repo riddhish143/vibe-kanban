@@ -50,7 +50,7 @@ interface ChatBoxBaseProps {
 
   // Dropzone props for drag-and-drop image uploads
   dropzone?: DropzoneProps;
-  
+
   // theme
   theme?: 'light' | 'dark';
 }
@@ -144,7 +144,7 @@ export function ChatBoxBase({
         `,
         }}
       />
-      
+
       {/* Glow Layer (Large blurred sweep) */}
       <div className="neon-glow-container">
         <div className="neon-sweep" />
@@ -192,25 +192,25 @@ export function ChatBoxBase({
 
         {/* Header - Stats and selector */}
         {visualVariant === VisualVariant.NORMAL && (
-          <div className="flex items-center gap-base border-b px-base py-base">
-            <div className="flex flex-1 items-center gap-base text-sm min-w-0 overflow-hidden">
+          <div className="flex items-center gap-3 border-b px-double py-[18px]">
+            <div className="flex flex-1 items-center gap-3 text-sm min-w-0 overflow-hidden">
               {headerLeft}
             </div>
-            <Toolbar className="gap-[9px]">{headerRight}</Toolbar>
+            <Toolbar className="gap-3">{headerRight}</Toolbar>
           </div>
         )}
 
         {/* Editor area */}
-        <div className="flex flex-col gap-plusfifty px-base py-base rounded-md">
+        <div className="flex flex-col gap-4 px-double py-double rounded-md">
           {editor}
 
           {/* Footer - Controls */}
-          <div className="flex items-end justify-between gap-base">
-            <Toolbar className="flex-1 min-w-0 flex-wrap !gap-half">
+          <div className="flex items-end justify-between gap-4">
+            <Toolbar className="flex-1 min-w-0 flex-wrap !gap-3">
               {modelSelector}
               {footerLeft}
             </Toolbar>
-            <div className="flex shrink-0 gap-base">{footerRight}</div>
+            <div className="flex shrink-0 gap-3">{footerRight}</div>
           </div>
         </div>
       </div>
