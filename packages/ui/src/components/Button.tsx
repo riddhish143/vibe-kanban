@@ -6,30 +6,37 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '../lib/cn';
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring/40 disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed',
+  'inline-flex items-center justify-center whitespace-nowrap font-medium ring-offset-background focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed',
   {
     variants: {
       variant: {
-        default:
-          'text-primary-foreground hover:bg-primary/90 border border-foreground',
-        destructive:
-          'border border-destructive text-destructive hover:bg-destructive/10',
-        outline:
-          'border border-input hover:bg-accent hover:text-accent-foreground',
-        secondary: 'text-secondary-foreground hover:bg-secondary/80 border',
-        ghost: 'hover:text-primary-foreground/50',
-        link: 'hover:underline',
-        icon: 'bg-transparent rounded text-muted-foreground hover:text-foreground',
+        default: 'app-control app-control-brand text-primary-foreground',
+        destructive: 'app-control app-control-destructive',
+        outline: 'app-control app-control-outline text-accent-foreground',
+        secondary:
+          'app-control app-control-secondary text-secondary-foreground',
+        ghost: 'app-control app-control-ghost',
+        link: 'text-normal underline-offset-4 transition-colors hover:text-high hover:underline',
+        icon: 'app-control app-control-ghost app-icon-control text-muted-foreground hover:text-foreground',
       },
       size: {
-        default: 'h-10 px-4 py-2',
-        xs: 'h-8 px-2 text-xs',
-        sm: 'h-9 px-3',
-        lg: 'h-11 px-8',
+        default: 'h-10 px-4 py-2 text-sm',
+        xs: 'h-8 px-3 text-xs',
+        sm: 'h-9 px-3.5 text-sm',
+        lg: 'h-11 px-5 text-sm',
         icon: 'h-10 w-10',
       },
     },
-    compoundVariants: [{ variant: 'icon', class: 'p-0 h-4' }],
+    compoundVariants: [
+      {
+        variant: 'icon',
+        class: 'p-0',
+      },
+      {
+        variant: 'link',
+        class: 'h-auto px-0 py-0 shadow-none',
+      },
+    ],
     defaultVariants: {
       variant: 'default',
       size: 'default',

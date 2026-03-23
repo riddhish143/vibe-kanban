@@ -291,7 +291,7 @@ export function SharedAppLayout() {
     <SyncErrorProvider>
       <div
         className={cn(
-          'bg-primary',
+          'app-shell bg-primary',
           isMobile
             ? 'flex fixed inset-0 pb-[env(safe-area-inset-bottom)]'
             : !isMigrateRoute
@@ -304,7 +304,7 @@ export function SharedAppLayout() {
             {/* Row 1, col 1: corner spacer — seamless with AppBar bg */}
             <div
               data-tauri-drag-region
-              className="bg-secondary"
+              className="app-sidebar-shell"
               style={isTauriMac() ? { minWidth: 56 } : undefined}
             />
             {/* Row 1, col 2: Navbar stretches full width */}
@@ -349,7 +349,7 @@ export function SharedAppLayout() {
               discordIconPath={siDiscord.path}
             />
             {/* Row 2, col 2: Content */}
-            <div className="relative min-h-0 overflow-hidden">
+            <div className="app-content-shell relative min-h-0 overflow-hidden">
               {isWorkspaceSidebarPreviewEnabled && (
                 <div className="absolute inset-y-0 left-0 z-20 flex items-center">
                   <WorkspacesSidebarReopenTag
@@ -372,7 +372,7 @@ export function SharedAppLayout() {
                   onMouseEnter={sidebarPreview.handlePreviewHoverStart}
                   onMouseLeave={sidebarPreview.handlePreviewHoverEnd}
                 >
-                  <div className="h-full w-full overflow-hidden border-r border-border bg-secondary shadow-lg">
+                  <div className="app-sidebar-shell h-full w-full overflow-hidden shadow-lg">
                     <WorkspacesSidebarContainer />
                   </div>
                 </div>
@@ -412,7 +412,7 @@ export function SharedAppLayout() {
               <button
                 type="button"
                 onClick={() => setIsDrawerOpen(false)}
-                className="p-1 rounded-sm text-low hover:text-normal cursor-pointer"
+                className="app-nav-button app-icon-control h-9 w-9 cursor-pointer"
               >
                 <XIcon className="h-4 w-4" weight="bold" />
               </button>
@@ -425,14 +425,14 @@ export function SharedAppLayout() {
                 appNavigation.goToWorkspaces();
                 setIsDrawerOpen(false);
               }}
-              className="flex items-center gap-2 px-4 py-3 text-sm text-normal hover:bg-secondary cursor-pointer"
+              className="app-tab-button mx-2 mt-2 justify-start px-4 py-3 text-sm text-normal cursor-pointer"
             >
               <LayoutIcon className="h-4 w-4" />
               Workspaces
             </button>
 
             {/* Divider */}
-            <div className="border-t border-border mx-4" />
+            <div className="app-sidebar-divider mx-4 border-t" />
 
             {/* Project list */}
             <div className="flex-1 overflow-y-auto p-2">
@@ -446,12 +446,14 @@ export function SharedAppLayout() {
                       setIsDrawerOpen(false);
                     }}
                     className={cn(
-                      'flex items-center gap-3 w-full px-3 py-2.5 rounded-md text-sm text-left cursor-pointer',
-                      'transition-colors',
+                      'app-tab-button flex w-full items-center justify-start gap-3 px-3 py-2.5 text-left text-sm cursor-pointer',
                       project.id === activeProjectId
-                        ? 'bg-brand/10 text-high'
-                        : 'text-normal hover:bg-secondary'
+                        ? 'text-high'
+                        : 'text-normal'
                     )}
+                    data-active={
+                      project.id === activeProjectId ? 'true' : undefined
+                    }
                   >
                     <span
                       className="h-2.5 w-2.5 rounded-full shrink-0"
@@ -479,7 +481,7 @@ export function SharedAppLayout() {
                         handleSignIn();
                         setIsDrawerOpen(false);
                       }}
-                      className="w-full px-3 py-2 rounded-md text-sm font-medium bg-brand text-on-brand hover:bg-brand-hover cursor-pointer"
+                      className="app-control app-control-brand w-full cursor-pointer px-3 py-2 text-sm font-medium"
                     >
                       Sign in
                     </button>
@@ -489,7 +491,7 @@ export function SharedAppLayout() {
                         handleMigrate();
                         setIsDrawerOpen(false);
                       }}
-                      className="w-full px-3 py-2 rounded-md text-sm text-normal bg-secondary hover:bg-panel border border-border cursor-pointer"
+                      className="app-control app-control-outline w-full cursor-pointer px-3 py-2 text-sm text-normal"
                     >
                       Migrate old projects
                     </button>
@@ -507,7 +509,7 @@ export function SharedAppLayout() {
                     handleCreateProject();
                     setIsDrawerOpen(false);
                   }}
-                  className="flex items-center gap-2 w-full px-3 py-2.5 rounded-md text-sm text-low hover:text-normal hover:bg-secondary cursor-pointer"
+                  className="app-tab-button flex w-full items-center justify-start gap-2 px-3 py-2.5 text-sm text-low cursor-pointer"
                 >
                   <PlusIcon className="h-4 w-4" />
                   Create Project

@@ -142,8 +142,8 @@ export function CollapsibleSectionHeader({
             type="button"
             onClick={() => setExpanded((prev) => !prev)}
             className={cn(
-              'flex w-full items-center justify-between rounded-sm px-base py-3 text-left',
-              'cursor-pointer border-b border-border/70 bg-secondary/20 transition-colors hover:bg-secondary/35',
+              'app-section-header-shell flex w-full items-center justify-between rounded-xl px-base py-3 text-left',
+              'cursor-pointer transition-colors hover:border-brand/20 hover:bg-secondary/35',
               headerClassName
             )}
           >
@@ -152,8 +152,7 @@ export function CollapsibleSectionHeader({
         ) : (
           <div
             className={cn(
-              'flex w-full items-center justify-between rounded-sm px-base py-3',
-              'border-b border-border/70 bg-secondary/20',
+              'app-section-header-shell flex w-full items-center justify-between rounded-xl px-base py-3',
               headerClassName
             )}
           >

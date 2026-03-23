@@ -68,12 +68,8 @@ function NavbarIconButton({
   const button = (
     <button
       type="button"
-      className={cn(
-        'flex items-center justify-center rounded-sm',
-        'text-low hover:text-normal',
-        isActive && 'text-normal',
-        className
-      )}
+      data-active={isActive ? 'true' : undefined}
+      className={cn('app-nav-button app-icon-control h-9 w-9', className)}
       {...props}
     >
       <IconComponent
@@ -209,7 +205,7 @@ export function Navbar({
   const renderItem = (item: NavbarSectionItem, key: string) => {
     // Render divider
     if (isDivider(item)) {
-      return <div key={key} className="h-4 w-px bg-border" />;
+      return <div key={key} className="app-sidebar-divider h-4 w-px" />;
     }
 
     const isDisabled = !!item.disabled;
@@ -232,12 +228,7 @@ export function Navbar({
   // ---- Mobile layout ----
   if (mobileMode) {
     return (
-      <nav
-        className={cn(
-          'flex flex-col bg-secondary border-b shrink-0',
-          className
-        )}
-      >
+      <nav className={cn('app-topbar-shell flex flex-col shrink-0', className)}>
         {/* Row 1: Tab bar (workspace pages) or minimal header (project pages) */}
         <div className="flex items-center justify-between px-base py-half">
           {isOnProjectPage ? (
@@ -246,7 +237,7 @@ export function Navbar({
                 ? onNavigateBack && (
                     <button
                       type="button"
-                      className="flex items-center justify-center text-low hover:text-normal"
+                      className="app-nav-button app-icon-control h-9 w-9"
                       onClick={onNavigateBack}
                       aria-label="Back"
                     >
@@ -256,7 +247,7 @@ export function Navbar({
                 : onOpenDrawer && (
                     <button
                       type="button"
-                      className="flex items-center justify-center text-low hover:text-normal"
+                      className="app-nav-button app-icon-control h-9 w-9"
                       onClick={onOpenDrawer}
                       aria-label="Open menu"
                     >
@@ -273,26 +264,26 @@ export function Navbar({
                 <>
                   <button
                     type="button"
-                    className="flex items-center justify-center px-1.5 py-1 text-low hover:text-normal"
+                    className="app-nav-button app-icon-control h-9 w-9"
                     onClick={onNavigateBack}
                     aria-label="Back"
                   >
                     <CaretLeftIcon className="size-icon-sm" />
                   </button>
-                  <div className="h-4 w-px bg-border mx-0.5 shrink-0" />
+                  <div className="app-sidebar-divider mx-0.5 h-4 w-px shrink-0" />
                 </>
               ) : (
                 onOpenDrawer && (
                   <>
                     <button
                       type="button"
-                      className="flex items-center justify-center px-1.5 py-1 text-low hover:text-normal"
+                      className="app-nav-button app-icon-control h-9 w-9"
                       onClick={onOpenDrawer}
                       aria-label="Projects"
                     >
                       <KanbanIcon className="size-icon-sm" />
                     </button>
-                    <div className="h-4 w-px bg-border mx-0.5 shrink-0" />
+                    <div className="app-sidebar-divider mx-0.5 h-4 w-px shrink-0" />
                   </>
                 )
               )}
@@ -304,12 +295,8 @@ export function Navbar({
                     <button
                       key={tab.id}
                       type="button"
-                      className={cn(
-                        'flex items-center gap-1 px-1.5 py-1 text-xs whitespace-nowrap transition-colors',
-                        isActive
-                          ? 'text-normal border-b-2 border-brand'
-                          : 'text-low hover:text-normal'
-                      )}
+                      data-active={isActive ? 'true' : undefined}
+                      className={cn('app-tab-button')}
                       onClick={() => onMobileTabChange?.(tab.id)}
                     >
                       <TabIcon
@@ -325,7 +312,7 @@ export function Navbar({
               {onNavigateToBoard && (
                 <button
                   type="button"
-                  className="flex items-center gap-1 px-1.5 py-1 text-xs text-low hover:text-normal whitespace-nowrap"
+                  className="app-tab-button"
                   onClick={onNavigateToBoard}
                 >
                   <KanbanIcon className="size-icon-sm" />
@@ -358,7 +345,7 @@ export function Navbar({
             {onReload && (
               <button
                 type="button"
-                className="flex items-center justify-center text-low hover:text-normal"
+                className="app-nav-button app-icon-control h-9 w-9"
                 onClick={onReload}
                 aria-label="Reload"
               >
@@ -368,7 +355,7 @@ export function Navbar({
             {!isOnProjectPage && onOpenSettings && (
               <button
                 type="button"
-                className="flex items-center justify-center text-low hover:text-normal"
+                className="app-nav-button app-icon-control h-9 w-9"
                 onClick={onOpenSettings}
                 aria-label="Settings"
               >
@@ -378,7 +365,7 @@ export function Navbar({
             {!isOnProjectPage && onOpenCommandBar && (
               <button
                 type="button"
-                className="flex items-center justify-center text-low hover:text-normal"
+                className="app-nav-button app-icon-control h-9 w-9"
                 onClick={onOpenCommandBar}
                 aria-label="Command bar"
               >
@@ -386,7 +373,7 @@ export function Navbar({
               </button>
             )}
             {mobileUserSlot && (
-              <div className="h-4 w-px bg-border mx-0.5 shrink-0" />
+              <div className="app-sidebar-divider mx-0.5 h-4 w-px shrink-0" />
             )}
             {mobileUserSlot}
           </div>
@@ -394,7 +381,7 @@ export function Navbar({
 
         {/* Row 2: Info bar with leftSlot + breadcrumbs/title (workspace pages only) */}
         {!isOnProjectPage && (workspaceTitle || breadcrumbs) && (
-          <div className="flex items-center justify-between px-base py-half border-t border-border">
+          <div className="flex items-center justify-between border-t border-border/60 px-base py-half">
             <div className="flex items-center gap-base flex-1 min-w-0">
               {leftSlot}
               {breadcrumbs && breadcrumbs.length > 0 ? (
@@ -421,7 +408,7 @@ export function Navbar({
     <nav
       data-tauri-drag-region
       className={cn(
-        'flex items-center justify-between px-base py-half bg-secondary border-b shrink-0',
+        'app-topbar-shell flex items-center justify-between px-base py-half shrink-0',
         className
       )}
     >

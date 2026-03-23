@@ -33,9 +33,8 @@ interface DropdownMenuTriggerButtonProps
 }
 
 export const dropdownMenuTriggerButtonClassName =
-  'flex items-center gap-half bg-secondary border border-border rounded-sm px-base py-half ' +
-  'focus:outline-none focus-visible:ring-1 focus-visible:ring-brand ' +
-  'disabled:opacity-50 disabled:cursor-not-allowed min-w-0';
+  'app-control app-control-secondary flex min-w-0 items-center gap-half px-base py-half ' +
+  'disabled:opacity-50 disabled:cursor-not-allowed';
 
 const sizeClasses = {
   default: '',
@@ -99,9 +98,9 @@ const DropdownMenuSubTrigger = React.forwardRef<
   <DropdownMenuPrimitive.SubTrigger
     ref={ref}
     className={cn(
-      'flex cursor-pointer select-none items-center gap-base px-base py-half mx-half rounded-sm',
+      'app-menu-item mx-half flex cursor-pointer select-none items-center gap-base border border-transparent px-base py-half',
       'text-sm text-high outline-none',
-      'focus:bg-secondary data-[state=open]:bg-secondary',
+      'data-[state=open]:border-brand/20 data-[state=open]:bg-secondary/60',
       '[&_svg]:pointer-events-none [&_svg]:size-icon-xs [&_svg]:shrink-0',
       className
     )}
@@ -123,8 +122,7 @@ const DropdownMenuSubContent = React.forwardRef<
       <DropdownMenuPrimitive.SubContent
         ref={ref}
         className={cn(
-          'z-[10000] min-w-[8rem] overflow-hidden',
-          'bg-panel border border-border rounded-sm py-half shadow-md',
+          'app-floating-panel z-[10000] min-w-[8rem] overflow-hidden border p-1.5',
           'data-[state=open]:animate-in',
           'data-[state=open]:fade-in-0',
           'data-[state=open]:zoom-in-95',
@@ -151,9 +149,8 @@ const DropdownMenuContent = React.forwardRef<
         ref={ref}
         sideOffset={sideOffset}
         className={cn(
-          'z-[10000] min-w-[8rem] overflow-y-auto overflow-x-hidden',
+          'app-floating-panel z-[10000] min-w-[8rem] overflow-y-auto overflow-x-hidden border p-1.5',
           'max-h-[var(--radix-dropdown-menu-content-available-height)]',
-          'bg-panel border border-border rounded-sm py-half shadow-md',
           'data-[state=open]:animate-in',
           'data-[state=open]:fade-in-0',
           'data-[state=open]:zoom-in-95',
@@ -199,15 +196,14 @@ const DropdownMenuItem = React.forwardRef<
     <DropdownMenuPrimitive.Item
       ref={ref}
       className={cn(
-        'relative flex cursor-pointer select-none items-center gap-base',
-        'px-base py-half mx-half rounded-sm outline-none transition-colors',
-        'focus:bg-secondary',
+        'app-menu-item relative mx-half flex cursor-pointer select-none items-center gap-base border border-transparent px-base py-half outline-none',
         'data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
         '[&_svg]:pointer-events-none [&_svg]:size-icon-xs [&_svg]:shrink-0',
         variant === 'default' && 'text-high',
-        variant === 'destructive' && 'text-error',
+        variant === 'destructive' && 'text-error data-[highlighted]:text-error',
         className
       )}
+      data-destructive={variant === 'destructive' ? 'true' : undefined}
       onPointerMove={
         preventFocusOnHover
           ? (e) => {
@@ -241,9 +237,7 @@ const DropdownMenuCheckboxItem = React.forwardRef<
   <DropdownMenuPrimitive.CheckboxItem
     ref={ref}
     className={cn(
-      'relative flex cursor-pointer select-none items-center gap-base',
-      'py-half px-base mx-half rounded-sm text-sm text-high',
-      'outline-none transition-colors focus:bg-secondary',
+      'app-menu-item relative mx-half flex cursor-pointer select-none items-center gap-base border border-transparent px-base py-half text-sm text-high outline-none',
       'data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
       className
     )}
@@ -266,9 +260,7 @@ const DropdownMenuRadioItem = React.forwardRef<
   <DropdownMenuPrimitive.RadioItem
     ref={ref}
     className={cn(
-      'relative flex cursor-pointer select-none items-center',
-      'py-half pl-double pr-base mx-half rounded-sm text-sm text-high',
-      'outline-none transition-colors focus:bg-secondary',
+      'app-menu-item relative mx-half flex cursor-pointer select-none items-center border border-transparent py-half pl-double pr-base text-sm text-high outline-none',
       'data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
       className
     )}
@@ -292,7 +284,10 @@ const DropdownMenuLabel = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DropdownMenuPrimitive.Label
     ref={ref}
-    className={cn('px-base py-half text-sm font-semibold text-low', className)}
+    className={cn(
+      'px-base py-half text-[11px] font-semibold uppercase tracking-[0.18em] text-low',
+      className
+    )}
     {...props}
   />
 ));
@@ -304,7 +299,7 @@ const DropdownMenuSeparator = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DropdownMenuPrimitive.Separator
     ref={ref}
-    className={cn('h-px bg-border my-half', className)}
+    className={cn('app-sidebar-divider my-1 h-px', className)}
     {...props}
   />
 ));
@@ -338,7 +333,7 @@ const DropdownMenuSearchInput = React.forwardRef<
   };
 
   return (
-    <div className="flex items-center gap-base px-plusfifty py-base">
+    <div className="app-input-wrapper px-plusfifty py-base">
       <MagnifyingGlassIcon className="size-icon-xs text-low" weight="bold" />
       <input
         ref={ref}

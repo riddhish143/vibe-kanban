@@ -24,7 +24,7 @@ const DialogOverlay = React.forwardRef<
     ref={ref}
     data-tauri-drag-region
     className={cn(
-      'fixed inset-0 z-[9998] bg-black/50',
+      'app-overlay-backdrop fixed inset-0 z-[9998]',
       'data-[state=open]:animate-in data-[state=closed]:animate-out',
       'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
       className
@@ -46,8 +46,9 @@ const DialogContent = React.forwardRef<
       <DialogPrimitive.Content
         ref={ref}
         className={cn(
+          'app-floating-panel',
           'fixed left-[50%] top-[50%] z-[9999] translate-x-[-50%] translate-y-[-50%]',
-          'w-full max-w-lg bg-panel border border-border rounded-sm shadow-lg',
+          'w-full max-w-lg border',
           'data-[state=open]:animate-in data-[state=closed]:animate-out',
           'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
           'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
@@ -60,7 +61,7 @@ const DialogContent = React.forwardRef<
       >
         {children}
         {!hideCloseButton && (
-          <DialogPrimitive.Close className="absolute right-base top-base rounded-sm opacity-70 ring-offset-panel transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 disabled:pointer-events-none">
+          <DialogPrimitive.Close className="app-control app-control-ghost app-icon-control absolute right-base top-base opacity-80 hover:opacity-100 disabled:pointer-events-none">
             <X className="h-4 w-4 text-normal" />
             <span className="sr-only">Close</span>
           </DialogPrimitive.Close>

@@ -25,8 +25,7 @@ const PopoverContent = forwardRef<
         align={align}
         sideOffset={sideOffset}
         className={cn(
-          'z-[10000] w-72 overflow-hidden',
-          'bg-panel border border-border rounded-sm p-base shadow-md',
+          'app-floating-panel z-[10000] w-72 overflow-hidden border p-base',
           'data-[state=open]:animate-in',
           'data-[state=open]:fade-in-0',
           'data-[state=open]:zoom-in-95',

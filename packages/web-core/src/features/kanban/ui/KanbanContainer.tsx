@@ -1085,41 +1085,57 @@ export function KanbanContainer() {
                 return (
                   <KanbanBoard key={status.id}>
                     <KanbanHeader>
-                      <div className="border-t sticky border-b-transparent top-0 z-20 flex shrink-0 items-center justify-between gap-2 px-base py-3 bg-secondary/80 backdrop-blur-md">
-                        <div className="flex items-center gap-base">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex min-w-0 items-center gap-base">
                           <div
                             className="h-2.5 w-2.5 rounded-full shrink-0"
                             style={{ backgroundColor: `hsl(${status.color})` }}
                           />
-                          <p className="m-0 text-sm font-medium text-low">
+                          <p className="m-0 truncate text-sm font-semibold tracking-tight text-normal">
                             {status.name}
                           </p>
-                          <KanbanBadge name={String(issueIds.length)} />
+                          <KanbanBadge
+                            name={String(issueIds.length)}
+                            className="kanban-column-count"
+                          />
                         </div>
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1.5">
                           {issueIds.length > 0 && hasUnselectedIssues && (
-                            <Button
-                              variant="ghost"
-                              size="xs"
+                            <button
+                              type="button"
+                              className="kanban-column-action"
                               onClick={() =>
                                 handleSelectAllIssuesForStatus(status.id)
                               }
                             >
                               {t('kanban.selectAll')}
-                            </Button>
+                            </button>
                           )}
                           <button
                             type="button"
                             onClick={() => handleAddTask(status.id)}
-                            className="p-half rounded-sm text-low hover:text-normal hover:bg-secondary transition-colors"
-                            aria-label="Add task"
+                            className="kanban-column-icon-button"
+                            aria-label={t('kanban.createNewIssue')}
                           >
                             <PlusIcon className="size-icon-xs" weight="bold" />
                           </button>
                         </div>
                       </div>
                     </KanbanHeader>
-                    <KanbanCards id={status.id}>
+                    <KanbanCards
+                      id={status.id}
+                      isEmpty={issueIds.length === 0}
+                      emptyState={
+                        <button
+                          type="button"
+                          onClick={() => handleAddTask(status.id)}
+                          className="kanban-empty-state__action"
+                        >
+                          <PlusIcon className="size-icon-xs" weight="bold" />
+                          {t('kanban.createNewIssue')}
+                        </button>
+                      }
+                    >
                       {swimlanes.map((lane) => (
                         <div key={lane.key} className="flex flex-col gap-3">
                           {groupBy === 'assignee' && (

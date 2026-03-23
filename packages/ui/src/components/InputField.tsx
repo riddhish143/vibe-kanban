@@ -87,11 +87,11 @@ export function InputField({
   // Determine border color based on state
   const getBorderClass = () => {
     if (variant === 'editable') {
-      if (justSaved) return 'border-success';
-      if (isEditing) return 'border-brand';
+      if (justSaved) return 'app-input-wrapper--success';
+      if (isEditing) return 'app-input-wrapper--brand';
     }
-    if (variant === 'search' && isFocused) return 'border-brand';
-    return 'border-border';
+    if (variant === 'search' && isFocused) return 'app-input-wrapper--brand';
+    return '';
   };
 
   // For search variant: always show input
@@ -101,7 +101,7 @@ export function InputField({
   return (
     <div
       className={cn(
-        'bg-secondary border rounded-sm px-base py-half flex items-center gap-base transition-colors',
+        'app-input-wrapper px-base py-half',
         getBorderClass(),
         className
       )}
@@ -145,7 +145,7 @@ export function InputField({
       {variant === 'editable' && isEditing && !justSaved && (
         <>
           <ArrowCounterClockwiseIcon
-            className="size-icon-sm text-low shrink-0 cursor-pointer hover:text-normal"
+            className="app-input-icon-button size-icon-sm"
             weight="bold"
             onMouseDown={(e) => {
               e.preventDefault();
@@ -153,7 +153,7 @@ export function InputField({
             }}
           />
           <CheckIcon
-            className="size-icon-sm text-low shrink-0 cursor-pointer hover:text-normal"
+            className="app-input-icon-button size-icon-sm"
             weight="bold"
             onMouseDown={(e) => {
               e.preventDefault();
@@ -164,7 +164,7 @@ export function InputField({
       )}
       {variant === 'editable' && !isEditing && !justSaved && (
         <PencilSimpleLineIcon
-          className="size-icon-sm text-low shrink-0 cursor-pointer hover:text-normal"
+          className="app-input-icon-button size-icon-sm"
           weight="regular"
           onClick={() => setIsEditing(true)}
         />
@@ -176,7 +176,7 @@ export function InputField({
           type="button"
           onClick={onAction}
           disabled={disabled}
-          className="size-icon-sm text-low shrink-0 cursor-pointer hover:text-normal flex items-center justify-center"
+          className="app-input-icon-button"
         >
           <ActionIcon className="size-icon-sm" weight="bold" />
         </button>

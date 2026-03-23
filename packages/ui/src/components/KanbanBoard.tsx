@@ -16,8 +16,11 @@ import {
   type DraggableProvided,
   type DraggableStateSnapshot,
   type DroppableProvided,
+  type DroppableStateSnapshot,
 } from '@hello-pangea/dnd';
 import {
+  Children,
+  type CSSProperties,
   type KeyboardEvent,
   type MutableRefObject,
   type ReactNode,
@@ -43,6 +46,33 @@ export type Feature = {
   status: Status;
 };
 
+const getKanbanCardStyle = (
+  style: CSSProperties | undefined,
+  snapshot: DraggableStateSnapshot
+): CSSProperties | undefined => {
+  if (!style) {
+    return style;
+  }
+
+  const baseTransform = style?.transform;
+  const isActivelyDragging = snapshot.isDragging && !snapshot.isDropAnimating;
+
+  return {
+    ...style,
+    transform: isActivelyDragging
+      ? baseTransform
+        ? `${baseTransform} rotate(-1.1deg) scale(1.016) translateZ(0)`
+        : 'rotate(-1.1deg) scale(1.016) translateZ(0)'
+      : baseTransform
+        ? `${baseTransform} translateZ(0)`
+        : undefined,
+    transition: snapshot.isDropAnimating
+      ? 'transform 280ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms ease-out'
+      : style.transition,
+    zIndex: isActivelyDragging ? 40 : style.zIndex,
+  };
+};
+
 // =============================================================================
 // Kanban Board (Droppable Column)
 // =============================================================================
@@ -54,7 +84,14 @@ export type KanbanBoardProps = {
 
 export const KanbanBoard = ({ children, className }: KanbanBoardProps) => {
   return (
-    <div className={cn('flex flex-col min-h-40', className)}>{children}</div>
+    <div
+      className={cn(
+        'kanban-board-column flex min-h-[24rem] flex-col',
+        className
+      )}
+    >
+      {children}
+    </div>
   );
 };
 
@@ -106,14 +143,21 @@ export const KanbanCard = ({
         return (
           <Card
             className={cn(
-              'outline-none flex-col border border-border/10 bg-card dark:bg-[#1c1c1c] rounded-xl mb-3 shadow-md transition-all',
-              'kanban-card-premium-hover',
-              snapshot.isDragging && 'cursor-grabbing scale-[1.02] shadow-xl ring-1 ring-border',
-              isOpen && 'ring-2 ring-primary ring-inset',
+              'kanban-card-premium-hover mb-3 flex-col overflow-hidden rounded-[22px] border border-border/60 bg-background/90 text-foreground shadow-sm outline-none transition-[box-shadow,border-color,background-color,opacity] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]',
+              snapshot.isDragging &&
+                'cursor-grabbing border-brand/40 shadow-2xl',
+              isOpen && 'border-brand/40 ring-1 ring-brand/30',
               className
             )}
             ref={setRefs}
             {...provided.draggableProps}
+            data-dragging={snapshot.isDragging ? 'true' : undefined}
+            data-drop-animating={snapshot.isDropAnimating ? 'true' : undefined}
+            data-open={isOpen ? 'true' : undefined}
+            style={getKanbanCardStyle(
+              provided.draggableProps.style as CSSProperties | undefined,
+              snapshot
+            )}
             {...(isMobile ? {} : provided.dragHandleProps)}
             tabIndex={tabIndex}
             onClick={
@@ -141,27 +185,29 @@ export const KanbanCard = ({
             }}
             onKeyDown={onKeyDown}
           >
-            {isMobile ? (
-              <div className="flex gap-half">
-                <div
-                  {...provided.dragHandleProps}
-                  className="flex items-start pt-half cursor-grab shrink-0"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <DotsSixVerticalIcon
-                    className="size-icon-xs text-low"
-                    weight="bold"
-                  />
+            <div className="kanban-card-surface">
+              {isMobile ? (
+                <div className="flex gap-half">
+                  <div
+                    {...provided.dragHandleProps}
+                    className="flex items-start pt-half cursor-grab shrink-0"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <DotsSixVerticalIcon
+                      className="size-icon-xs text-low"
+                      weight="bold"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    {children ?? (
+                      <p className="m-0 font-medium text-sm">{name}</p>
+                    )}
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  {children ?? (
-                    <p className="m-0 font-medium text-sm">{name}</p>
-                  )}
-                </div>
-              </div>
-            ) : (
-              (children ?? <p className="m-0 font-medium text-sm">{name}</p>)
-            )}
+              ) : (
+                (children ?? <p className="m-0 font-medium text-sm">{name}</p>)
+              )}
+            </div>
           </Card>
         );
       }}
@@ -177,22 +223,53 @@ export type KanbanCardsProps = {
   id: string;
   children: ReactNode;
   className?: string;
+  isEmpty?: boolean;
+  emptyState?: ReactNode;
 };
 
-export const KanbanCards = ({ id, children, className }: KanbanCardsProps) => (
-  <Droppable droppableId={id}>
-    {(provided: DroppableProvided) => (
-      <div
-        className={cn('flex flex-1 flex-col pt-3', className)}
-        ref={provided.innerRef}
-        {...provided.droppableProps}
-      >
-        {children}
-        {provided.placeholder}
-      </div>
-    )}
-  </Droppable>
-);
+export const KanbanCards = ({
+  id,
+  children,
+  className,
+  isEmpty,
+  emptyState,
+}: KanbanCardsProps) => {
+  const hasChildren = Children.toArray(children).length > 0;
+  const shouldShowEmptyState = isEmpty ?? !hasChildren;
+
+  return (
+    <Droppable droppableId={id}>
+      {(provided: DroppableProvided, snapshot: DroppableStateSnapshot) => (
+        <div
+          className={cn('kanban-dropzone flex flex-1 flex-col', className)}
+          ref={provided.innerRef}
+          data-dragging-over={snapshot.isDraggingOver ? 'true' : undefined}
+          data-empty={shouldShowEmptyState ? 'true' : undefined}
+          {...provided.droppableProps}
+        >
+          {children}
+          {shouldShowEmptyState ? (
+            <div
+              className="kanban-empty-state"
+              aria-hidden={emptyState ? undefined : true}
+            >
+              <div className="kanban-empty-state__ambient" />
+              <div className="kanban-empty-state__figure" aria-hidden="true">
+                <span />
+                <span />
+                <span />
+              </div>
+              {emptyState ? (
+                <div className="kanban-empty-state__content">{emptyState}</div>
+              ) : null}
+            </div>
+          ) : null}
+          {provided.placeholder}
+        </div>
+      )}
+    </Droppable>
+  );
+};
 
 // =============================================================================
 // Kanban Header
@@ -201,6 +278,7 @@ export const KanbanCards = ({ id, children, className }: KanbanCardsProps) => (
 export type KanbanHeaderProps =
   | {
       children: ReactNode;
+      className?: string;
     }
   | {
       name: Status['name'];
@@ -213,16 +291,16 @@ export const KanbanHeader = (props: KanbanHeaderProps) => {
   const { t } = useTranslation('tasks');
 
   if ('children' in props) {
-    return props.children;
+    return (
+      <Card className={cn('kanban-column-header', props.className)}>
+        {props.children}
+      </Card>
+    );
   }
 
   return (
     <Card
-      className={cn(
-        'sticky top-0 z-20 flex shrink-0 items-center gap-base p-base flex gap-base',
-        'bg-background',
-        props.className
-      )}
+      className={cn('kanban-column-header', props.className)}
       style={{
         backgroundImage: `linear-gradient(hsl(var(${props.color}) / 0.03), hsl(var(${props.color}) / 0.03))`,
       }}
@@ -240,7 +318,7 @@ export const KanbanHeader = (props: KanbanHeaderProps) => {
           <TooltipTrigger asChild>
             <Button
               variant="ghost"
-              className="m-0 p-0 h-0 text-foreground/50 hover:text-foreground"
+              className="kanban-column-icon-button !h-8 !w-8 !p-0 !text-foreground/70 hover:!text-foreground"
               onClick={props.onAddTask}
               aria-label={t('actions.addTask')}
             >
@@ -273,7 +351,7 @@ export const KanbanProvider = ({
     <DragDropContext onDragEnd={onDragEnd}>
       <div
         className={cn(
-          'inline-grid grid-flow-col auto-cols-[minmax(200px,400px)] gap-6 items-stretch min-h-full',
+          'kanban-provider inline-grid min-h-full grid-flow-col auto-cols-[minmax(280px,380px)] items-stretch gap-6 pb-3',
           className
         )}
       >

@@ -21,17 +21,17 @@ export function PrimaryButton({
   className,
 }: PrimaryButtonProps) {
   const variantStyles = disabled
-    ? 'cursor-not-allowed bg-panel'
+    ? 'app-control app-control-secondary cursor-not-allowed'
     : variant === 'default'
-      ? 'bg-brand hover:bg-brand-hover text-on-brand'
+      ? 'app-control app-control-brand'
       : variant === 'secondary'
-        ? 'bg-brand-secondary hover:bg-brand-hover text-on-brand'
-        : 'bg-panel hover:bg-secondary text-normal';
+        ? 'app-control app-control-secondary'
+        : 'app-control app-control-outline';
 
   return (
     <button
       className={cn(
-        'rounded-sm px-base py-half text-cta min-h-cta flex gap-half items-center',
+        'min-h-cta gap-half rounded-xl px-base py-half text-cta',
         variantStyles,
         className
       )}

@@ -143,7 +143,7 @@ export function AppBar({
       onMouseLeave={onHoverEnd}
       className={cn(
         'flex flex-col items-center h-full min-h-0 overflow-y-auto p-base gap-base',
-        'bg-secondary border-r border-border'
+        'app-sidebar-shell'
       )}
     >
       {showHostsSection && (
@@ -188,17 +188,13 @@ export function AppBar({
                       }
                       onHostClick?.(host.id, host.status);
                     }}
+                    data-active={isActiveHost ? 'true' : undefined}
                     className={cn(
-                      'relative flex items-center justify-center w-10 h-10 rounded-lg',
-                      'text-sm font-medium transition-colors',
-                      'focus:outline-none focus-visible:ring-2 focus-visible:ring-brand',
-                      isOffline
-                        ? 'bg-primary text-low opacity-50 cursor-not-allowed'
-                        : 'bg-primary text-normal cursor-pointer',
-                      isActiveHost && 'ring-2 ring-brand',
+                      'app-nav-button app-icon-control relative h-10 w-10 text-sm font-medium',
+                      isOffline && 'opacity-50 cursor-not-allowed',
                       host.status === 'online' && 'hover:bg-brand/10',
                       host.status === 'unpaired' &&
-                      'text-warning hover:bg-warning/10'
+                        'text-warning hover:bg-warning/10'
                     )}
                     aria-label={`${host.name} (${getHostStatusLabel(host.status)})`}
                   >
@@ -214,10 +210,7 @@ export function AppBar({
                 type="button"
                 onClick={onPairHostClick}
                 className={cn(
-                  'flex items-center justify-center w-10 h-10 rounded-lg',
-                  'text-sm font-medium transition-colors cursor-pointer',
-                  'focus:outline-none focus-visible:ring-2 focus-visible:ring-brand',
-                  'bg-primary text-muted hover:text-normal hover:bg-tertiary'
+                  'app-nav-button app-icon-control h-10 w-10 cursor-pointer text-sm font-medium'
                 )}
                 aria-label="Pair host"
               >
@@ -229,7 +222,7 @@ export function AppBar({
       )}
 
       {(hosts.length > 0 || onPairHostClick) && (
-        <div className="w-8 h-px bg-border" aria-hidden="true" />
+        <div className="app-sidebar-divider h-px w-8" aria-hidden="true" />
       )}
 
       {/* Project management popover for unsigned users */}
@@ -240,10 +233,7 @@ export function AppBar({
               <button
                 type="button"
                 className={cn(
-                  'flex items-center justify-center w-10 h-10 rounded-lg',
-                  'transition-colors cursor-pointer',
-                  'focus:outline-none focus-visible:ring-2 focus-visible:ring-brand',
-                  'bg-primary text-normal hover:bg-brand/10'
+                  'app-nav-button app-icon-control h-10 w-10 cursor-pointer'
                 )}
                 aria-label={t('appBar.kanban.tooltip')}
               >
@@ -264,8 +254,7 @@ export function AppBar({
                   type="button"
                   onClick={onSignIn}
                   className={cn(
-                    'px-base py-1 rounded-sm text-xs',
-                    'bg-brand text-on-brand hover:bg-brand-hover cursor-pointer'
+                    'app-control app-control-brand cursor-pointer px-base py-1 text-xs'
                   )}
                 >
                   {t('signIn')}
@@ -276,8 +265,7 @@ export function AppBar({
                   type="button"
                   onClick={onMigrate}
                   className={cn(
-                    'px-base py-1 rounded-sm text-xs',
-                    'bg-secondary text-normal hover:bg-panel border border-border cursor-pointer'
+                    'app-control app-control-outline cursor-pointer px-base py-1 text-xs'
                   )}
                 >
                   {t('appBar.kanban.migrateOldProjects')}
@@ -333,21 +321,22 @@ export function AppBar({
                         <button
                           type="button"
                           onClick={() => onProjectClick(project.id)}
+                          data-active={
+                            activeProjectId === project.id ? 'true' : undefined
+                          }
                           className={cn(
-                            'flex items-center justify-center w-10 h-10 rounded-lg',
-                            'text-sm font-medium transition-colors cursor-grab',
-                            'focus:outline-none focus-visible:ring-2 focus-visible:ring-brand',
+                            'app-nav-button app-icon-control h-10 w-10 cursor-grab text-sm font-medium',
                             snapshot.isDragging && 'shadow-lg',
                             activeProjectId === project.id
-                              ? ''
-                              : 'bg-primary text-normal hover:opacity-80'
+                              ? 'text-high'
+                              : 'text-normal hover:opacity-90'
                           )}
                           style={
                             activeProjectId === project.id
                               ? {
-                                color: `hsl(${project.color})`,
-                                backgroundColor: `hsl(${project.color} / 0.2)`,
-                              }
+                                  color: `hsl(${project.color})`,
+                                  backgroundColor: `hsl(${project.color} / 0.16)`,
+                                }
                               : undefined
                           }
                           aria-label={project.name}
@@ -372,10 +361,7 @@ export function AppBar({
             type="button"
             onClick={onCreateProject}
             className={cn(
-              'flex items-center justify-center w-10 h-10 rounded-lg',
-              'text-sm font-medium transition-colors cursor-pointer',
-              'focus:outline-none focus-visible:ring-2 focus-visible:ring-brand',
-              'bg-primary text-muted hover:text-normal hover:bg-tertiary'
+              'app-nav-button app-icon-control h-10 w-10 cursor-pointer text-sm font-medium'
             )}
             aria-label="Create project"
           >
@@ -415,10 +401,9 @@ export function AppBar({
               type="button"
               onClick={onUpdateClick}
               className={cn(
-                'flex items-center justify-center py-1 rounded-md w-10',
+                'app-control app-control-brand flex w-10 items-center justify-center py-1',
                 'text-[9px] font-ibm-plex-mono font-medium leading-none',
-                'bg-brand text-on-brand hover:bg-brand-hover',
-                'transition-colors cursor-pointer'
+                'cursor-pointer'
               )}
             >
               Update
