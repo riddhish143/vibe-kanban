@@ -99,11 +99,13 @@ fn main() {
         .plugin(tauri_plugin_notification::init())
         .invoke_handler(tauri::generate_handler![show_system_notification]);
 
-    // Only register the updater plugin in release builds — dev builds have a
-    // placeholder endpoint that fails config deserialization.
-    if !cfg!(debug_assertions) {
-        builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
-    }
+    // NOTE: The updater plugin is NOT registered because there is no
+    // valid updater endpoint configured in tauri.conf.json. To re-enable
+    // auto-updates, add a valid `plugins.updater` config with real
+    // endpoints and uncomment the block below.
+    // if !cfg!(debug_assertions) {
+    //     builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
+    // }
 
     builder
         .setup(move |app| {
@@ -171,32 +173,10 @@ fn main() {
                     }
                 });
 
-                // Check for updates in the background on startup and then
-                // periodically. We only *download* the update here —
-                // installing it (which replaces the app bundle on disk) is
-                // deferred until the user exits or triggers a restart.
-                // Installing while the app is running causes a code-signature
-                // mismatch on macOS, which makes NSOpenPanel (and other XPC
-                // services) return NULL and crash the app.
-                // See tauri-apps/tauri#13047.
-                let update_handle = app.handle().clone();
-                let pending_for_download = pending_for_setup.clone();
-                tauri::async_runtime::spawn(async move {
-                    run_periodic_update_checks(update_handle, pending_for_download).await;
-                });
-
-                // Listen for restart request from frontend (after update downloaded).
-                // Install the previously downloaded bytes *now*, then restart.
-                let restart_handle = app.handle().clone();
-                let pending_for_install = pending_for_setup.clone();
-                app.listen("restart-app", move |_| {
-                    let handle = restart_handle.clone();
-                    let pending = pending_for_install.clone();
-                    tauri::async_runtime::spawn(async move {
-                        install_pending_update(&handle, &pending).await;
-                        handle.restart();
-                    });
-                });
+                // NOTE: Updater is disabled. To re-enable, register the
+                // updater plugin above AND uncomment the code below.
+                // See the updater guard comment near builder initialization.
+                let _ = pending_for_setup; // suppress unused variable warning
             }
 
             Ok(())

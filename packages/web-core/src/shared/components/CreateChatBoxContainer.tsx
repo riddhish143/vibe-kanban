@@ -591,13 +591,13 @@ export function CreateChatBoxContainer({
         }}
       />
       <div
-        className={`relative z-10 flex flex-1 items-center justify-center px-base pointer-events-none transition-all duration-700 ${
+        className={`relative z-10 flex flex-col flex-1 items-center justify-center px-base pointer-events-none transition-all duration-700 overflow-hidden ${
           createWorkspace.isPending
             ? 'blur-[4px] opacity-60 scale-[0.98]'
             : 'blur-0 opacity-100 scale-100'
         }`}
       >
-        <div className="create-mode-geist flex w-chat max-w-full flex-col gap-base pointer-events-auto">
+        <div className="create-mode-geist flex w-full max-w-[56rem] flex-col gap-base pointer-events-auto">
           {showRepoPickerStep && (
             <>
               <h2 className="create-mode-heading mb-double text-center text-4xl font-medium tracking-tight text-high">
@@ -615,7 +615,7 @@ export function CreateChatBoxContainer({
                 {t('createMode.headings.chatStep')}
               </h2>
 
-              <div className="flex justify-center @container">
+              <div className="w-full @container">
                 <CreateChatBox
                   theme={resolvedTheme}
                   editor={{

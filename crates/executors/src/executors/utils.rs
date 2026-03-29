@@ -1,4 +1,5 @@
 use std::{
+    env,
     hash::Hash,
     num::NonZeroUsize,
     sync::{Arc, Mutex, OnceLock},
@@ -124,6 +125,9 @@ pub fn executor_options_cache()
 /// Spawn a background task to refresh the global cache for an executor.
 /// This should be called on every use to keep the cache warm.
 pub fn spawn_global_cache_refresh_for_agent(base_agent: BaseCodingAgent) {
+    if !background_executor_cache_refresh_enabled() {
+        return;
+    }
     spawn_global_cache_refresh_for_agent_with_configs(base_agent, ExecutorConfigs::get_cached());
 }
 
@@ -145,10 +149,85 @@ fn spawn_global_cache_refresh_for_agent_with_configs(
 /// Preload the global cache for all executors with DEFAULT presets.
 /// This should be called on startup to warm the cache.
 pub async fn preload_global_executor_options_cache() {
+    if !background_executor_cache_refresh_enabled() {
+        return;
+    }
+
     let configs = ExecutorConfigs::get_cached();
     let executors: Vec<BaseCodingAgent> = configs.executors.keys().copied().collect();
 
     for base_agent in executors {
         spawn_global_cache_refresh_for_agent_with_configs(base_agent, configs.clone());
+    }
+}
+
+fn is_truthy_env_value(value: &str) -> bool {
+    matches!(
+        value.trim().to_ascii_lowercase().as_str(),
+        "1" | "true" | "yes" | "on"
+    )
+}
+
+/// Background executor cache refresh can trigger subprocess discovery.
+/// On macOS this is disabled by default to avoid startup instability;
+/// opt in explicitly by setting VIBE_ENABLE_BACKGROUND_EXECUTOR_PRELOAD=1.
+pub fn background_executor_cache_refresh_enabled() -> bool {
+    if cfg!(target_os = "macos") {
+        env::var("VIBE_ENABLE_BACKGROUND_EXECUTOR_PRELOAD")
+            .map(|v| is_truthy_env_value(&v))
+            .unwrap_or(false)
+    } else {
+        true
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::{Mutex, OnceLock};
+
+    use super::*;
+
+    fn env_lock() -> &'static Mutex<()> {
+        static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+        LOCK.get_or_init(|| Mutex::new(()))
+    }
+
+    #[test]
+    fn truthy_env_values_are_recognized() {
+        assert!(is_truthy_env_value("1"));
+        assert!(is_truthy_env_value("true"));
+        assert!(is_truthy_env_value("TRUE"));
+        assert!(is_truthy_env_value("yes"));
+        assert!(is_truthy_env_value("on"));
+        assert!(!is_truthy_env_value("0"));
+        assert!(!is_truthy_env_value("false"));
+        assert!(!is_truthy_env_value("off"));
+    }
+
+    #[test]
+    fn background_refresh_enablement_matches_platform_defaults() {
+        let _guard = env_lock().lock().unwrap_or_else(|e| e.into_inner());
+        // SAFETY: Test serializes env mutations with env_lock().
+        unsafe { env::remove_var("VIBE_ENABLE_BACKGROUND_EXECUTOR_PRELOAD") };
+
+        #[cfg(target_os = "macos")]
+        assert!(!background_executor_cache_refresh_enabled());
+        #[cfg(not(target_os = "macos"))]
+        assert!(background_executor_cache_refresh_enabled());
+    }
+
+    #[test]
+    fn macos_can_opt_in_with_env_flag() {
+        let _guard = env_lock().lock().unwrap_or_else(|e| e.into_inner());
+        // SAFETY: Test serializes env mutations with env_lock().
+        unsafe { env::set_var("VIBE_ENABLE_BACKGROUND_EXECUTOR_PRELOAD", "1") };
+
+        #[cfg(target_os = "macos")]
+        assert!(background_executor_cache_refresh_enabled());
+        #[cfg(not(target_os = "macos"))]
+        assert!(background_executor_cache_refresh_enabled());
+
+        // SAFETY: Test serializes env mutations with env_lock().
+        unsafe { env::remove_var("VIBE_ENABLE_BACKGROUND_EXECUTOR_PRELOAD") };
     }
 }

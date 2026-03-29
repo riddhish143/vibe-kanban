@@ -81,7 +81,7 @@ export function ChatBoxBase({
     <div
       {...(dropzone?.getRootProps() ?? {})}
       className={cn(
-        'relative flex w-chat max-w-full flex-col rounded-xl p-[1px] transition-all duration-300 group',
+        'relative flex w-full max-w-[56rem] flex-col rounded-xl p-[1px] transition-all duration-300 group',
         isRunning && 'chat-box-running'
       )}
     >

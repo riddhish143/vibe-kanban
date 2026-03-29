@@ -244,7 +244,7 @@ export function CreateModeRepoPickerBar({
   );
 
   return (
-    <div className="w-chat max-w-full">
+    <div className="w-full max-w-[56rem]">
       <div className="px-plusfifty py-base">
         {repos.length > 0 && (
           <div>
