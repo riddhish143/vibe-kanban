@@ -83,6 +83,7 @@ export function ChatEntryContainer({
   return (
     <div
       className={cn(
+        'motion-safe:animate-chat-entry-in',
         'rounded-sm w-full',
         config.border && 'border',
         config.border,

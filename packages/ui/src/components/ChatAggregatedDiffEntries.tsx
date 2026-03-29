@@ -251,6 +251,7 @@ export function ChatAggregatedDiffEntries({
   return (
     <div
       className={cn(
+        'motion-safe:animate-chat-entry-in',
         'rounded-sm border overflow-hidden',
         isDenied && 'border-error bg-error/10',
         className

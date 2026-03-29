@@ -1,11 +1,13 @@
 // vite.config.ts
-import { sentryVitePlugin } from "@sentry/vite-plugin";
-import { createLogger, defineConfig, Plugin } from "vite";
-import react from "@vitejs/plugin-react";
-import { tanstackRouter } from "@tanstack/router-plugin/vite";
-import path from "path";
-import fs from "fs";
-import pkg from "./package.json";
+import { sentryVitePlugin } from '@sentry/vite-plugin';
+import react from '@vitejs/plugin-react';
+import { tanstackRouter } from '@tanstack/router-plugin/vite';
+import fs from 'fs';
+import path from 'path';
+import { createLogger, defineConfig, Plugin, type PluginOption } from 'vite';
+import pkg from './package.json';
+
+const GENERATED_ROUTE_TREE = path.resolve(__dirname, 'src/routeTree.gen.ts');
 
 function createFilteredLogger() {
   const logger = createLogger();
@@ -16,18 +18,26 @@ function createFilteredLogger() {
 
   logger.error = (msg, options) => {
     const isProxyError =
-      msg.includes("ws proxy socket error") ||
-      msg.includes("ws proxy error:") ||
-      msg.includes("http proxy error:");
+      msg.includes('ws proxy socket error') ||
+      msg.includes('ws proxy error:') ||
+      msg.includes('http proxy error:');
+    const isGeneratedRouteTreeRace = msg.includes(
+      'routeTree.gen.ts was modified by another process'
+    );
 
     if (isProxyError) {
       const now = Date.now();
       if (now - lastRestartLog > DEBOUNCE_MS) {
-        logger.warn("Proxy connection closed, auto-reconnecting...");
+        logger.warn('Proxy connection closed, auto-reconnecting...');
         lastRestartLog = now;
       }
       return;
     }
+
+    if (isGeneratedRouteTreeRace) {
+      return;
+    }
+
     originalError(msg, options);
   };
 
@@ -129,6 +139,9 @@ export default defineConfig({
   },
   server: {
     port: parseInt(process.env.FRONTEND_PORT || '3000'),
+    watch: {
+      ignored: ['**/routeTree.gen.ts'],
+    },
     proxy: {
       '/api': {
         target: `http://localhost:${process.env.BACKEND_PORT || '3001'}`,

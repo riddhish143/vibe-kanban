@@ -28,6 +28,14 @@
         }
       }
     },
+    "BOB": {
+      "DEFAULT": {
+        "BOB": {
+          "trust": true,
+          "approval_mode": "yolo"
+        }
+      }
+    },
     "OPENCODE": {
       "DEFAULT": {
         "OPENCODE": {

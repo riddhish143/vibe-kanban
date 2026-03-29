@@ -213,6 +213,7 @@ fn generate_types_content() -> String {
         executors::executors::claude::ClaudeCode::decl(),
         executors::executors::gemini::Gemini::decl(),
         executors::executors::amp::Amp::decl(),
+        executors::executors::bob::Bob::decl(),
         executors::executors::codex::Codex::decl(),
         executors::executors::codex::SandboxMode::decl(),
         executors::executors::codex::AskForApproval::decl(),
@@ -318,6 +319,10 @@ fn generate_schemas() -> Result<HashMap<&'static str, String>, serde_json::Error
         (
             "codex",
             generate_json_schema::<executors::executors::codex::Codex>()?,
+        ),
+        (
+            "bob",
+            generate_json_schema::<executors::executors::bob::Bob>()?,
         ),
         (
             "cursor_agent",

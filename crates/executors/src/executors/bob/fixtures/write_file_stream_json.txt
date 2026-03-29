@@ -1,0 +1,10 @@
+{"type":"init","timestamp":"2026-03-28T17:00:00.000Z","session_id":"aaa11111-2222-3333-4444-555566667777","model":"premium"}
+{"type":"message","timestamp":"2026-03-28T17:00:00.001Z","role":"user","content":"Create a file called hello.txt with the content Hello World."}
+{"type":"message","timestamp":"2026-03-28T17:00:02.000Z","role":"assistant","content":"<thinking>\nI need to create hello.txt with the content Hello World.\n</thinking>\n\nI'll create the file for you.\n","delta":true}
+{"type":"tool_use","timestamp":"2026-03-28T17:00:03.000Z","tool_name":"write_to_file","tool_id":"tool-1","parameters":{"file_path":"/tmp/test-worktree/hello.txt","content":"Hello World\n"}}
+{"type":"tool_result","timestamp":"2026-03-28T17:00:03.100Z","tool_id":"tool-1","status":"success","output":"File written successfully."}
+{"type":"tool_use","timestamp":"2026-03-28T17:00:04.000Z","tool_name":"search_and_replace","tool_id":"tool-2","parameters":{"file_path":"/tmp/test-worktree/hello.txt","old_str":"Hello World","new_str":"Hello Bob"}}
+{"type":"tool_result","timestamp":"2026-03-28T17:00:04.100Z","tool_id":"tool-2","status":"success","output":"Replacement applied."}
+{"type":"tool_use","timestamp":"2026-03-28T17:00:05.000Z","tool_name":"attempt_completion","tool_id":"tool-3","parameters":{"result":"\nDone! I created hello.txt and updated the greeting.\n"}}
+{"type":"tool_result","timestamp":"2026-03-28T17:00:05.100Z","tool_id":"tool-3","status":"success","output":""}
+{"type":"result","timestamp":"2026-03-28T17:00:05.200Z","status":"success","stats":{"total_tokens":1000,"input_tokens":800,"output_tokens":200,"duration_ms":5200,"session_costs":0.05,"max_budget":100,"budget_spend":0.05,"tool_calls":3}}

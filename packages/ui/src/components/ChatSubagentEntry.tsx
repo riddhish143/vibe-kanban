@@ -114,6 +114,7 @@ export function ChatSubagentEntry({
   return (
     <div
       className={cn(
+        'motion-safe:animate-chat-entry-in',
         'rounded-sm border overflow-hidden',
         isErrorStatus && 'border-error bg-error/5',
         status?.status === 'success' && 'border-success/50',

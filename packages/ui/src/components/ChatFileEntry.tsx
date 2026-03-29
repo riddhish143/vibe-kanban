@@ -78,6 +78,7 @@ export function ChatFileEntry({
     return (
       <div
         className={cn(
+          'motion-safe:animate-chat-entry-in',
           'rounded-sm border overflow-hidden',
           isDenied && 'border-error bg-error/10',
           className
@@ -148,6 +149,7 @@ export function ChatFileEntry({
   return (
     <div
       className={cn(
+        'motion-safe:animate-chat-entry-in',
         'flex items-center border rounded-sm p-base w-full',
         isDenied ? 'bg-error/20 border-error' : 'bg-panel',
         (onToggle || isVSCode) && 'cursor-pointer',

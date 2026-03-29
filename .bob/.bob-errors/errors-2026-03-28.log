@@ -1,0 +1,18 @@
+
+================================================================================
+ERROR LOGGED: 2026-03-28T16:38:34.576Z
+================================================================================
+Error Name: Error
+Error Message: EPERM: operation not permitted, mkdir '/Users/riddhishganeshmahajan/.bob/tmp/962aa2d937199b2846e760b67d530be26d405bb0cfcc71636b6581e387a2ebb0/chats'
+
+Stack Trace:
+Error: EPERM: operation not permitted, mkdir '/Users/riddhishganeshmahajan/.bob/tmp/962aa2d937199b2846e760b67d530be26d405bb0cfcc71636b6581e387a2ebb0/chats'
+    at Object.mkdirSync (node:fs:1344:26)
+    at iY.initialize (file:///opt/homebrew/lib/node_modules/bobshell/bundle/bob.js:2479:13680)
+    at new oY (file:///opt/homebrew/lib/node_modules/bobshell/bundle/bob.js:2479:21192)
+    at cwe.startChat (file:///opt/homebrew/lib/node_modules/bobshell/bundle/bob.js:2815:10087)
+    at async cwe.initialize (file:///opt/homebrew/lib/node_modules/bobshell/bundle/bob.js:2815:8548)
+    at async k3.initialize (file:///opt/homebrew/lib/node_modules/bobshell/bundle/bob.js:3502:27619)
+    at async IMi (file:///opt/homebrew/lib/node_modules/bobshell/bundle/bob.js:4666:1382)
+================================================================================
+

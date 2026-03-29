@@ -171,6 +171,18 @@ module.exports = {
           '10%, 30%, 50%, 70%, 90%': { transform: 'translateX(-2px)' },
           '20%, 40%, 60%, 80%': { transform: 'translateX(2px)' },
         },
+        'chat-entry-in': {
+          '0%': { opacity: '0', transform: 'translateY(8px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        'chat-fade-in': {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        'chat-slide-in': {
+          '0%': { opacity: '0', transform: 'translateX(-6px)' },
+          '100%': { opacity: '1', transform: 'translateX(0)' },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -181,6 +193,9 @@ module.exports = {
         'running-dot-3': 'running-dot 1.4s ease-in-out 0.4s infinite',
         'border-flash': 'border-flash 2s linear infinite',
         shake: 'shake 0.3s ease-in-out',
+        'chat-entry-in': 'chat-entry-in 0.3s ease-out both',
+        'chat-fade-in': 'chat-fade-in 0.25s ease-out both',
+        'chat-slide-in': 'chat-slide-in 0.3s ease-out both',
       },
     },
   },

@@ -45,6 +45,7 @@ export function ChatAggregatedToolEntries({
     return (
       <div
         className={cn(
+          'motion-safe:animate-chat-slide-in',
           'flex items-center gap-base text-sm text-low',
           onViewContent && 'cursor-pointer',
           className
@@ -91,7 +92,7 @@ export function ChatAggregatedToolEntries({
   );
 
   return (
-    <div className={cn('flex flex-col', className)}>
+    <div className={cn('motion-safe:animate-chat-slide-in', 'flex flex-col', className)}>
       {/* Header row - clickable to expand/collapse */}
       <div
         className="flex items-center gap-base text-sm text-low cursor-pointer group"

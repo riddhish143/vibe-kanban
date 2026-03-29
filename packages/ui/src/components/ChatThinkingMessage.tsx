@@ -1,5 +1,6 @@
-import type { ReactNode } from 'react';
-import { ChatDotsIcon } from '@phosphor-icons/react';
+import { type ReactNode, useState } from 'react';
+import { ChatDotsIcon, CaretRightIcon } from '@phosphor-icons/react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '../lib/cn';
 
 export interface ChatThinkingMessageRenderProps {
@@ -21,16 +22,51 @@ export function ChatThinkingMessage({
   workspaceId,
   renderMarkdown,
 }: ChatThinkingMessageProps) {
+  const { t } = useTranslation('common');
+  const [expanded, setExpanded] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+
   return (
     <div
-      className={cn('flex items-start gap-base text-sm text-low', className)}
+      className={cn(
+        'flex flex-col motion-safe:animate-chat-fade-in',
+        className
+      )}
     >
-      <ChatDotsIcon className="shrink-0 size-icon-base pt-0.5" />
-      {renderMarkdown({
-        content,
-        workspaceId: workspaceId,
-        className: 'text-sm',
-      })}
+      {/* Header row - clickable to expand/collapse */}
+      <div
+        className="flex items-center gap-base text-sm text-low cursor-pointer group"
+        onClick={() => setExpanded((prev) => !prev)}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        role="button"
+        aria-expanded={expanded}
+      >
+        <span className="shrink-0 pt-0.5">
+          {isHovered ? (
+            <CaretRightIcon
+              className={cn(
+                'size-icon-base transition-transform duration-150',
+                expanded && 'rotate-90'
+              )}
+            />
+          ) : (
+            <ChatDotsIcon className="size-icon-base" />
+          )}
+        </span>
+        <span className="truncate">{t('conversation.thinking')}</span>
+      </div>
+
+      {/* Expanded content */}
+      {expanded && (
+        <div className="ml-6 pt-1 pl-base">
+          {renderMarkdown({
+            content,
+            workspaceId,
+            className: 'text-sm',
+          })}
+        </div>
+      )}
     </div>
   );
 }

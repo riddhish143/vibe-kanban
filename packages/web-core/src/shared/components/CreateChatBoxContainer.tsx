@@ -1,4 +1,4 @@
-import { useMemo, useCallback, useState, useEffect, useRef } from 'react';
+import { memo, useMemo, useCallback, useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDropzone } from 'react-dropzone';
 import { useCreateMode } from '@/features/create-mode/model/useCreateMode';
@@ -36,6 +36,275 @@ function truncateBranchLabel(branch: string) {
 interface CreateChatBoxContainerProps {
   onWorkspaceCreated: (workspaceId: string) => void;
 }
+
+const AsicBackground = memo(function AsicBackground({
+  isDark,
+  isCreating,
+}: {
+  isDark: boolean;
+  isCreating: boolean;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const mouseRef = useRef<{ x: number; y: number; active: boolean }>({
+    x: -1000,
+    y: -1000,
+    active: false,
+  });
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d', { alpha: true });
+    if (!ctx) return;
+
+    let animationFrameId: number;
+    let width = 0;
+    let height = 0;
+    let mouseTimeout: ReturnType<typeof setTimeout> | undefined;
+
+    const RESOLUTION_FACTOR = 2;
+    const CELL_SIZE = 6;
+
+    const initCanvas = () => {
+      width = canvas.offsetWidth;
+      height = canvas.offsetHeight;
+      canvas.width = width * RESOLUTION_FACTOR;
+      canvas.height = height * RESOLUTION_FACTOR;
+      ctx.scale(RESOLUTION_FACTOR, RESOLUTION_FACTOR);
+    };
+
+    initCanvas();
+
+    const resizeObserver = new ResizeObserver(() => {
+      cancelAnimationFrame(animationFrameId);
+      initCanvas();
+      animationFrameId = requestAnimationFrame(render);
+    });
+    resizeObserver.observe(canvas);
+
+    // Coherent value noise
+    const perm = new Uint8Array(512);
+    const p = new Uint8Array(256);
+    for (let i = 0; i < 256; i++) p[i] = Math.floor(Math.random() * 256);
+    for (let i = 0; i < 512; i++) perm[i] = p[i & 255];
+
+    const fade = (t: number) => t * t * t * (t * (t * 6 - 15) + 10);
+    const lerp = (t: number, a: number, b: number) => a + t * (b - a);
+
+    const grad = (hash: number, x: number, y: number) => {
+      const h = hash & 15;
+      const u = h < 8 ? x : y;
+      const v = h < 4 ? y : h === 12 || h === 14 ? x : 0;
+      return ((h & 1) === 0 ? u : -u) + ((h & 2) === 0 ? v : -v);
+    };
+
+    const noise2D = (x: number, y: number) => {
+      const X = Math.floor(x) & 255;
+      const Y = Math.floor(y) & 255;
+      x -= Math.floor(x);
+      y -= Math.floor(y);
+      const u = fade(x);
+      const v = fade(y);
+      const A = perm[X] + Y;
+      const B = perm[X + 1] + Y;
+      return lerp(
+        v,
+        lerp(u, grad(perm[A], x, y), grad(perm[B], x - 1, y)),
+        lerp(u, grad(perm[A + 1], x, y - 1), grad(perm[B + 1], x - 1, y - 1))
+      );
+    };
+
+    // Fractal brownian motion for richer, layered noise
+    const fbm = (x: number, y: number, octaves = 4) => {
+      let value = 0;
+      let amp = 0.5;
+      let freq = 1;
+      for (let i = 0; i < octaves; i++) {
+        value += noise2D(x * freq, y * freq) * amp;
+        amp *= 0.5;
+        freq *= 2;
+      }
+      return value;
+    };
+
+    // Rich multi-stop color palette
+    const palette = isDark
+      ? ([
+          [6, 6, 12],
+          [12, 16, 32],
+          [22, 30, 55],
+          [35, 48, 82],
+          [55, 40, 90],
+          [75, 55, 110],
+          [110, 75, 60],
+          [140, 95, 55],
+        ] as number[][])
+      : ([
+          [245, 248, 255],
+          [215, 228, 245],
+          [175, 198, 228],
+          [135, 168, 210],
+          [98, 136, 185],
+          [72, 108, 155],
+          [52, 78, 122],
+          [30, 48, 88],
+        ] as number[][]);
+
+    const lerpColor = (a: number[], b: number[], t: number) => [
+      a[0] + (b[0] - a[0]) * t,
+      a[1] + (b[1] - a[1]) * t,
+      a[2] + (b[2] - a[2]) * t,
+    ];
+
+    const bgFill = isDark ? '#060610' : '#f8f6f3';
+    const mouseInfluenceRadius = 250;
+
+    const smoothMouse = { x: -1000, y: -1000, intensity: 0 };
+
+    const render = (time: number) => {
+      const elapsed = time / 1000;
+
+      if (mouseRef.current.active) {
+        smoothMouse.x += (mouseRef.current.x - smoothMouse.x) * 0.08;
+        smoothMouse.y += (mouseRef.current.y - smoothMouse.y) * 0.08;
+        smoothMouse.intensity += (1 - smoothMouse.intensity) * 0.1;
+      } else {
+        smoothMouse.intensity += (0 - smoothMouse.intensity) * 0.04;
+      }
+
+      ctx.fillStyle = bgFill;
+      ctx.fillRect(0, 0, width, height);
+
+      const cols = Math.ceil(width / CELL_SIZE);
+      const rows = Math.ceil(height / CELL_SIZE);
+
+      for (let y = 0; y <= rows; y++) {
+        for (let x = 0; x <= cols; x++) {
+          const px = x * CELL_SIZE;
+          const py = y * CELL_SIZE;
+
+          const n1 = fbm(
+            x * 0.06 + elapsed * 0.12,
+            y * 0.06 - elapsed * 0.08,
+            3
+          );
+          const n2 = fbm(
+            x * 0.12 - elapsed * 0.06,
+            y * 0.12 + elapsed * 0.1,
+            2
+          );
+          let value = (n1 * 0.65 + n2 * 0.35 + 1) / 2;
+
+          const cx = px / width - 0.5;
+          const cy = py / height - 0.5;
+          const radialDist = Math.sqrt(cx * cx + cy * cy);
+          value *= 1 - radialDist * 0.6;
+
+          if (smoothMouse.intensity > 0.01) {
+            const mdx = px - smoothMouse.x;
+            const mdy = py - smoothMouse.y;
+            const mDist = Math.sqrt(mdx * mdx + mdy * mdy);
+            if (mDist < mouseInfluenceRadius) {
+              const glow = 1 - mDist / mouseInfluenceRadius;
+              value = Math.min(
+                1,
+                value + glow * glow * 0.5 * smoothMouse.intensity
+              );
+            }
+          }
+
+          if (value < 0.03) continue;
+
+          const t = Math.min(value, 1) * (palette.length - 1);
+          const idx = Math.floor(t);
+          const frac = t - idx;
+          const color = lerpColor(
+            palette[Math.min(idx, palette.length - 1)],
+            palette[Math.min(idx + 1, palette.length - 1)],
+            frac
+          );
+
+          const alpha = isDark
+            ? Math.min(value * 1.2, 0.85)
+            : Math.min(value * 1.6, 0.92);
+          ctx.fillStyle = `rgba(${color[0] | 0},${color[1] | 0},${color[2] | 0},${alpha.toFixed(3)})`;
+          ctx.fillRect(px, py, CELL_SIZE - 1, CELL_SIZE - 1);
+        }
+      }
+
+      const vignette = ctx.createRadialGradient(
+        width / 2,
+        height / 2,
+        height * 0.25,
+        width / 2,
+        height / 2,
+        Math.max(width, height) * 0.65
+      );
+      vignette.addColorStop(0, 'rgba(0,0,0,0)');
+      vignette.addColorStop(
+        1,
+        isDark ? 'rgba(4,4,10,0.7)' : 'rgba(255,255,255,0.35)'
+      );
+      ctx.fillStyle = vignette;
+      ctx.fillRect(0, 0, width, height);
+
+      animationFrameId = requestAnimationFrame(render);
+    };
+
+    animationFrameId = requestAnimationFrame(render);
+
+    const handlePointerMove = (e: PointerEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      mouseRef.current.x = e.clientX - rect.left;
+      mouseRef.current.y = e.clientY - rect.top;
+      mouseRef.current.active = true;
+
+      clearTimeout(mouseTimeout);
+      mouseTimeout = setTimeout(() => {
+        mouseRef.current.active = false;
+      }, 1000);
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      resizeObserver.disconnect();
+      cancelAnimationFrame(animationFrameId);
+      clearTimeout(mouseTimeout);
+    };
+  }, [isDark]);
+
+  return (
+    <div
+      className={`absolute inset-0 overflow-hidden select-none z-0 transition-all duration-1000 ${
+        isDark ? 'bg-[#060610]' : 'bg-[#f8f6f3]'
+      } ${
+        isCreating
+          ? 'blur-[10px] opacity-70 scale-[1.05]'
+          : 'blur-0 opacity-100 scale-100'
+      }`}
+    >
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+            @keyframes asic-wave-pan {
+              0% { transform: scale(1); }
+              50% { transform: scale(1.05); }
+              100% { transform: scale(1); }
+            }
+            .animate-asic-wave {
+              animation: asic-wave-pan 20s ease-in-out infinite;
+            }
+          `,
+        }}
+      />
+      <div className="absolute inset-[-5%] animate-asic-wave">
+        <canvas ref={canvasRef} className="w-full h-full pointer-events-none" />
+      </div>
+    </div>
+  );
+});
 
 export function CreateChatBoxContainer({
   onWorkspaceCreated,
@@ -301,288 +570,12 @@ export function CreateChatBoxContainer({
     return null;
   }
 
-  const AsicBackground = () => {
-    const isDark = resolvedTheme === 'dark';
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const mouseRef = useRef<{ x: number; y: number; active: boolean }>({
-      x: -1000,
-      y: -1000,
-      active: false,
-    });
-
-    useEffect(() => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const ctx = canvas.getContext('2d', { alpha: true });
-      if (!ctx) return;
-
-      let animationFrameId: number;
-      let width = 0;
-      let height = 0;
-      let mouseTimeout: ReturnType<typeof setTimeout> | undefined;
-
-      const RESOLUTION_FACTOR = 2;
-      const CELL_SIZE = 6;
-
-      const initCanvas = () => {
-        width = canvas.offsetWidth;
-        height = canvas.offsetHeight;
-        canvas.width = width * RESOLUTION_FACTOR;
-        canvas.height = height * RESOLUTION_FACTOR;
-        ctx.scale(RESOLUTION_FACTOR, RESOLUTION_FACTOR);
-      };
-
-      initCanvas();
-
-      const resizeObserver = new ResizeObserver(() => {
-        cancelAnimationFrame(animationFrameId);
-        initCanvas();
-        animationFrameId = requestAnimationFrame(render);
-      });
-      resizeObserver.observe(canvas);
-
-      // Coherent value noise
-      const perm = new Uint8Array(512);
-      const p = new Uint8Array(256);
-      for (let i = 0; i < 256; i++) p[i] = Math.floor(Math.random() * 256);
-      for (let i = 0; i < 512; i++) perm[i] = p[i & 255];
-
-      const fade = (t: number) => t * t * t * (t * (t * 6 - 15) + 10);
-      const lerp = (t: number, a: number, b: number) => a + t * (b - a);
-
-      const grad = (hash: number, x: number, y: number) => {
-        const h = hash & 15;
-        const u = h < 8 ? x : y;
-        const v = h < 4 ? y : h === 12 || h === 14 ? x : 0;
-        return ((h & 1) === 0 ? u : -u) + ((h & 2) === 0 ? v : -v);
-      };
-
-      const noise2D = (x: number, y: number) => {
-        const X = Math.floor(x) & 255;
-        const Y = Math.floor(y) & 255;
-        x -= Math.floor(x);
-        y -= Math.floor(y);
-        const u = fade(x);
-        const v = fade(y);
-        const A = perm[X] + Y;
-        const B = perm[X + 1] + Y;
-        return lerp(
-          v,
-          lerp(u, grad(perm[A], x, y), grad(perm[B], x - 1, y)),
-          lerp(u, grad(perm[A + 1], x, y - 1), grad(perm[B + 1], x - 1, y - 1))
-        );
-      };
-
-      // Fractal brownian motion for richer, layered noise
-      const fbm = (x: number, y: number, octaves = 4) => {
-        let value = 0;
-        let amp = 0.5;
-        let freq = 1;
-        for (let i = 0; i < octaves; i++) {
-          value += noise2D(x * freq, y * freq) * amp;
-          amp *= 0.5;
-          freq *= 2;
-        }
-        return value;
-      };
-
-      // Rich multi-stop color palette
-      const palette = isDark
-        ? ([
-            [6, 6, 12], // void
-            [12, 16, 32], // deep navy
-            [22, 30, 55], // midnight
-            [35, 48, 82], // ocean blue
-            [55, 40, 90], // indigo violet
-            [75, 55, 110], // soft purple
-            [110, 75, 60], // warm ember
-            [140, 95, 55], // amber glow
-          ] as number[][])
-        : ([
-            [245, 248, 255], // arctic white
-            [215, 228, 245], // silver blue
-            [175, 198, 228], // glacier blue
-            [135, 168, 210], // cool horizon
-            [98, 136, 185], // ocean steel
-            [72, 108, 155], // deep denim
-            [52, 78, 122], // storm blue
-            [30, 48, 88], // night ocean
-          ] as number[][]);
-
-      const lerpColor = (a: number[], b: number[], t: number) => [
-        a[0] + (b[0] - a[0]) * t,
-        a[1] + (b[1] - a[1]) * t,
-        a[2] + (b[2] - a[2]) * t,
-      ];
-
-      const bgFill = isDark ? '#060610' : '#f8f6f3';
-      const mouseInfluenceRadius = 250;
-
-      // Smooth mouse position and glow intensity
-      const smoothMouse = { x: -1000, y: -1000, intensity: 0 };
-
-      const render = (time: number) => {
-        const elapsed = time / 1000;
-
-        // Smoothly interpolate mouse position (always follow last known position)
-        if (mouseRef.current.active) {
-          smoothMouse.x += (mouseRef.current.x - smoothMouse.x) * 0.08;
-          smoothMouse.y += (mouseRef.current.y - smoothMouse.y) * 0.08;
-          smoothMouse.intensity += (1 - smoothMouse.intensity) * 0.1;
-        } else {
-          // Fade out intensity in place — don't move the position
-          smoothMouse.intensity += (0 - smoothMouse.intensity) * 0.04;
-        }
-
-        ctx.fillStyle = bgFill;
-        ctx.fillRect(0, 0, width, height);
-
-        const cols = Math.ceil(width / CELL_SIZE);
-        const rows = Math.ceil(height / CELL_SIZE);
-
-        for (let y = 0; y <= rows; y++) {
-          for (let x = 0; x <= cols; x++) {
-            const px = x * CELL_SIZE;
-            const py = y * CELL_SIZE;
-
-            // Layer 1: slow large-scale flow
-            const n1 = fbm(
-              x * 0.06 + elapsed * 0.12,
-              y * 0.06 - elapsed * 0.08,
-              3
-            );
-            // Layer 2: finer detail drifting diagonally
-            const n2 = fbm(
-              x * 0.12 - elapsed * 0.06,
-              y * 0.12 + elapsed * 0.1,
-              2
-            );
-            // Combined, normalized to 0..1
-            let value = (n1 * 0.65 + n2 * 0.35 + 1) / 2;
-
-            // Radial fade from center — keeps the center brighter
-            const cx = px / width - 0.5;
-            const cy = py / height - 0.5;
-            const radialDist = Math.sqrt(cx * cx + cy * cy);
-            value *= 1 - radialDist * 0.6;
-
-            // Mouse glow — soft warm light near cursor, fades in place
-            if (smoothMouse.intensity > 0.01) {
-              const mdx = px - smoothMouse.x;
-              const mdy = py - smoothMouse.y;
-              const mDist = Math.sqrt(mdx * mdx + mdy * mdy);
-              if (mDist < mouseInfluenceRadius) {
-                const glow = 1 - mDist / mouseInfluenceRadius;
-                value = Math.min(
-                  1,
-                  value + glow * glow * 0.5 * smoothMouse.intensity
-                );
-              }
-            }
-
-            if (value < 0.03) continue;
-
-            // Map value to palette with smooth interpolation
-            const t = Math.min(value, 1) * (palette.length - 1);
-            const idx = Math.floor(t);
-            const frac = t - idx;
-            const color = lerpColor(
-              palette[Math.min(idx, palette.length - 1)],
-              palette[Math.min(idx + 1, palette.length - 1)],
-              frac
-            );
-
-            const alpha = isDark
-              ? Math.min(value * 1.2, 0.85)
-              : Math.min(value * 1.6, 0.92);
-            ctx.fillStyle = `rgba(${color[0] | 0},${color[1] | 0},${color[2] | 0},${alpha.toFixed(3)})`;
-            ctx.fillRect(px, py, CELL_SIZE - 1, CELL_SIZE - 1);
-          }
-        }
-
-        // Soft vignette
-        const vignette = ctx.createRadialGradient(
-          width / 2,
-          height / 2,
-          height * 0.25,
-          width / 2,
-          height / 2,
-          Math.max(width, height) * 0.65
-        );
-        vignette.addColorStop(0, 'rgba(0,0,0,0)');
-        vignette.addColorStop(
-          1,
-          isDark ? 'rgba(4,4,10,0.7)' : 'rgba(255,255,255,0.35)'
-        );
-        ctx.fillStyle = vignette;
-        ctx.fillRect(0, 0, width, height);
-
-        animationFrameId = requestAnimationFrame(render);
-      };
-
-      animationFrameId = requestAnimationFrame(render);
-
-      const handlePointerMove = (e: PointerEvent) => {
-        const rect = canvas.getBoundingClientRect();
-        mouseRef.current.x = e.clientX - rect.left;
-        mouseRef.current.y = e.clientY - rect.top;
-        mouseRef.current.active = true;
-
-        clearTimeout(mouseTimeout);
-        mouseTimeout = setTimeout(() => {
-          mouseRef.current.active = false;
-        }, 1000);
-      };
-
-      window.addEventListener('pointermove', handlePointerMove);
-
-      return () => {
-        window.removeEventListener('pointermove', handlePointerMove);
-        resizeObserver.disconnect();
-        cancelAnimationFrame(animationFrameId);
-        clearTimeout(mouseTimeout);
-      };
-    }, [isDark]);
-
-    const isCreating = createWorkspace.isPending;
-
-    return (
-      <div
-        className={`absolute inset-0 overflow-hidden select-none z-0 transition-all duration-1000 ${
-          isDark ? 'bg-[#060610]' : 'bg-[#f8f6f3]'
-        } ${
-          isCreating
-            ? 'blur-[10px] opacity-70 scale-[1.05]'
-            : 'blur-0 opacity-100 scale-100'
-        }`}
-      >
-        <style
-          dangerouslySetInnerHTML={{
-            __html: `
-            @keyframes asic-wave-pan {
-              0% { transform: scale(1); }
-              50% { transform: scale(1.05); }
-              100% { transform: scale(1); }
-            }
-            .animate-asic-wave {
-              animation: asic-wave-pan 20s ease-in-out infinite;
-            }
-          `,
-          }}
-        />
-        <div className="absolute inset-[-5%] animate-asic-wave">
-          <canvas
-            ref={canvasRef}
-            className="w-full h-full pointer-events-none"
-          />
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div className="relative flex flex-1 flex-col bg-primary h-full z-0 overflow-hidden">
-      <AsicBackground />
+      <AsicBackground
+        isDark={resolvedTheme === 'dark'}
+        isCreating={createWorkspace.isPending}
+      />
       <style
         dangerouslySetInnerHTML={{
           __html: `

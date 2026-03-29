@@ -17,6 +17,7 @@ export function ChatSystemMessage({
   return (
     <div
       className={cn(
+        'motion-safe:animate-chat-fade-in',
         'flex items-start gap-base text-sm text-low cursor-pointer',
         className
       )}

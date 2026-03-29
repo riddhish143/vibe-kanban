@@ -69,6 +69,7 @@ export const ChatToolSummary = forwardRef<
   return (
     <div
       className={cn(
+        'motion-safe:animate-chat-slide-in',
         'flex items-center gap-base text-sm text-low',
         isClickable && 'cursor-pointer',
         className

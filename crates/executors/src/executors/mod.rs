@@ -22,8 +22,8 @@ use crate::{
     command::CommandBuildError,
     env::ExecutionEnv,
     executors::{
-        amp::Amp, claude::ClaudeCode, codex::Codex, copilot::Copilot, cursor::CursorAgent,
-        droid::Droid, gemini::Gemini, opencode::Opencode, qwen::QwenCode,
+        amp::Amp, bob::Bob, claude::ClaudeCode, codex::Codex, copilot::Copilot,
+        cursor::CursorAgent, droid::Droid, gemini::Gemini, opencode::Opencode, qwen::QwenCode,
     },
     logs::utils::patch,
     mcp_config::McpConfig,
@@ -32,6 +32,7 @@ use crate::{
 
 pub mod acp;
 pub mod amp;
+pub mod bob;
 pub mod claude;
 pub mod codex;
 pub mod copilot;
@@ -111,6 +112,7 @@ pub enum CodingAgent {
     Amp,
     Gemini,
     Codex,
+    Bob,
     Opencode,
     #[serde(alias = "CURSOR")]
     #[strum_discriminants(serde(alias = "CURSOR"))]
@@ -189,6 +191,7 @@ impl CodingAgent {
                 BaseAgentCapability::SetupHelper,
                 BaseAgentCapability::ContextUsage,
             ],
+            Self::Bob(_) => vec![BaseAgentCapability::SessionFork],
             Self::Gemini(_) | Self::QwenCode(_) => {
                 vec![BaseAgentCapability::SessionFork]
             }
@@ -419,5 +422,16 @@ mod tests {
         let result: Result<BaseCodingAgent, _> = serde_json::from_str(r#""CURSOR""#);
         assert!(result.is_ok(), "CURSOR should deserialize via serde");
         assert_eq!(result.unwrap(), BaseCodingAgent::CursorAgent);
+    }
+
+    #[test]
+    fn test_bob_deserialization() {
+        let result = BaseCodingAgent::from_str("BOB");
+        assert!(result.is_ok(), "BOB should be valid");
+        assert_eq!(result.unwrap(), BaseCodingAgent::Bob);
+
+        let result: Result<BaseCodingAgent, _> = serde_json::from_str(r#""BOB""#);
+        assert!(result.is_ok(), "BOB should deserialize via serde");
+        assert_eq!(result.unwrap(), BaseCodingAgent::Bob);
     }
 }

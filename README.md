@@ -8,7 +8,7 @@
   </a>
 </p>
 
-<p align="center">Get 10X more out of Claude Code, Gemini CLI, Codex, Amp and other coding agents...</p>
+<p align="center">Get 10X more out of Claude Code, Gemini CLI, Codex, Bob, Amp and other coding agents...</p>
 <p align="center">
   <a href="https://www.npmjs.com/package/vibe-kanban"><img alt="npm" src="https://img.shields.io/npm/v/vibe-kanban?style=flat-square" /></a>
   <a href="https://github.com/riddhish143/vibe-kanban/blob/main/.github/workflows/publish.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/BloopAI/vibe-kanban/.github%2Fworkflows%2Fpublish.yml" /></a>
@@ -31,7 +31,7 @@ Vibe Kanban is built for this. Use kanban issues to plan work, either privately 
 - **Run coding agents in workspaces** — each workspace gives an agent a branch, a terminal, and a dev server
 - **Review diffs and leave inline comments** — send feedback directly to the agent without leaving the UI
 - **Preview your app** — built-in browser with devtools, inspect mode, and device emulation
-- **Switch between 10+ coding agents** — Claude Code, Codex, Gemini CLI, GitHub Copilot, Amp, Cursor, OpenCode, Droid, CCR, and Qwen Code
+- **Switch between 10+ coding agents** — Claude Code, Codex, Bob, Gemini CLI, GitHub Copilot, Amp, Cursor, OpenCode, Droid, CCR, and Qwen Code
 - **Create pull requests and merge** — open PRs with AI-generated descriptions, review on GitHub, and merge
 
 ![](packages/public/vibe-kanban-screenshot-workspace.png)
@@ -50,6 +50,8 @@ Make sure you have authenticated with your favourite coding agent. A full list o
 ```bash
 npx vibe-kanban
 ```
+
+If you plan to use **Bob Shell**, launch `bob` once in your terminal first so you can complete its IBM login and license acceptance flow before using it inside Vibe Kanban.
 
 ## Documentation
 

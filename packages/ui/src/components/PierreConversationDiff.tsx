@@ -1,4 +1,9 @@
-import { type ElementType, type ReactNode, useMemo } from 'react';
+import {
+  Component,
+  type ElementType,
+  type ReactNode,
+  useMemo,
+} from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   CaretDownIcon,
@@ -146,6 +151,34 @@ interface DiffData {
   filePath: string;
   isValid: boolean;
   hideLineNumbers: boolean;
+}
+
+class PatchDiffErrorBoundary extends Component<
+  {
+    fallback: ReactNode;
+    children: ReactNode;
+  },
+  { hasError: boolean }
+> {
+  constructor(props: { fallback: ReactNode; children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: unknown) {
+    console.error('Failed to render unified diff patch:', error);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback;
+    }
+    return this.props.children;
+  }
 }
 
 function parseDiffStats(unifiedDiff: string): {
@@ -396,7 +429,17 @@ export function DiffViewBody({
 
   // For unified diff string
   if (unifiedDiff) {
-    return <PatchDiff patch={unifiedDiff} options={options} />;
+    return (
+      <PatchDiffErrorBoundary
+        fallback={
+          <div className="px-base pb-base text-xs font-ibm-plex-mono text-low">
+            {invalidMessage ?? t('conversation.unableToRenderDiff')}
+          </div>
+        }
+      >
+        <PatchDiff patch={unifiedDiff} options={options} />
+      </PatchDiffErrorBoundary>
+    );
   }
 
   return null;

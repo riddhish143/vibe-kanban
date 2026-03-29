@@ -16,5 +16,9 @@ export function ChatAssistantMessage({
   workspaceId,
   renderMarkdown,
 }: ChatAssistantMessageProps) {
-  return renderMarkdown({ content, workspaceId });
+  return (
+    <div className="motion-safe:animate-chat-entry-in">
+      {renderMarkdown({ content, workspaceId })}
+    </div>
+  );
 }

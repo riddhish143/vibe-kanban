@@ -17,6 +17,7 @@ export function ChatErrorMessage({
   return (
     <div
       className={cn(
+        'motion-safe:animate-chat-entry-in',
         'flex items-start gap-base text-sm text-error cursor-pointer',
         className
       )}

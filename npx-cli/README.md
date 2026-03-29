@@ -1,6 +1,6 @@
 # Vibe Kanban
 
-> A visual project management tool for developers that integrates with git repositories and coding agents like Claude Code and Amp.
+> A visual project management tool for developers that integrates with git repositories and coding agents like Claude Code, Bob, and Amp.
 
 ## Quick Start
 
@@ -11,6 +11,8 @@ npx vibe-kanban
 ```
 
 This will launch the application locally and open it in your browser automatically.
+
+If you want to use Bob Shell inside Vibe Kanban, run `bob` once directly in your terminal first so Bob can complete its login and license acceptance flow.
 
 Helpful entrypoints:
 
@@ -44,6 +46,7 @@ Vibe Kanban is a modern project management tool designed specifically for develo
 **🤖 AI Agent Integration**
 
 - **Claude**: Advanced AI coding assistant
+- **Bob**: IBM Bob Shell integration for code and plan workflows
 - **Amp**: Powerful development agent
 - **Echo**: Simple testing/debugging agent
 - Create tasks and immediately start agent execution
