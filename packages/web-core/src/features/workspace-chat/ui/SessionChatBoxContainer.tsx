@@ -444,10 +444,11 @@ export function SessionChatBoxContainer(props: SessionChatBoxContainerProps) {
   });
 
   const supportsContextUsage =
-    !!effectiveExecutor &&
-    capabilities?.[effectiveExecutor]?.includes(
-      BaseAgentCapability.CONTEXT_USAGE
-    );
+    !!tokenUsageInfo ||
+    (!!effectiveExecutor &&
+      capabilities?.[effectiveExecutor]?.includes(
+        BaseAgentCapability.CONTEXT_USAGE
+      ));
 
   // Navigate to agent settings to customise variants
   const handleCustomise = () => {

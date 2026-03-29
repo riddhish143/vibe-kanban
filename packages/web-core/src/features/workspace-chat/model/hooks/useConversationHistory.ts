@@ -57,6 +57,30 @@ function extractPromptFromActionChain(
   return null;
 }
 
+type TokenUsageInfoWithBobBudget = TokenUsageInfo & {
+  bob_budget_spend?: number;
+  bob_max_budget?: number;
+};
+
+function extractBobBudgetFromContent(content: string): {
+  bob_budget_spend?: number;
+  bob_max_budget?: number;
+} {
+  const match = content.match(
+    /Bob coins:\s*([0-9]+(?:\.[0-9]+)?)\s*\/\s*([0-9]+(?:\.[0-9]+)?)/i
+  );
+  if (!match) return {};
+
+  const spend = Number(match[1]);
+  const max = Number(match[2]);
+  if (!Number.isFinite(spend) || !Number.isFinite(max)) return {};
+
+  return {
+    bob_budget_spend: spend,
+    bob_max_budget: max,
+  };
+}
+
 export const useConversationHistory = ({
   attempt,
   onEntriesUpdated,
@@ -97,6 +121,7 @@ export const useConversationHistory = ({
     const state = displayedExecutionProcesses.current;
     mutator(state);
   };
+
   useEffect(() => {
     onEntriesUpdatedRef.current = onEntriesUpdated;
   }, [onEntriesUpdated]);
@@ -200,7 +225,7 @@ export const useConversationHistory = ({
       let lastProcessFailedOrKilled = false;
       let needsSetup = false;
       let setupHelpText: string | undefined;
-      let latestTokenUsageInfo: TokenUsageInfo | null = null;
+      let latestTokenUsageInfo: TokenUsageInfoWithBobBudget | null = null;
 
       // Check whether a setup script process exists AND can provide the
       // initial user prompt via its next_action chain.  When it can, the
@@ -277,8 +302,12 @@ export const useConversationHistory = ({
                 e.content.entry_type.type === 'token_usage_info'
             );
             if (tokenUsageEntry?.type === 'NORMALIZED_ENTRY') {
-              latestTokenUsageInfo = tokenUsageEntry.content
+              const usageInfo = tokenUsageEntry.content
                 .entry_type as TokenUsageInfo;
+              latestTokenUsageInfo = {
+                ...usageInfo,
+                ...extractBobBudgetFromContent(tokenUsageEntry.content.content),
+              };
             }
 
             // Remove user messages (replaced with custom one) and token usage info (displayed separately)

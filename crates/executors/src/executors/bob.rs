@@ -27,7 +27,7 @@ use crate::{
     },
     logs::{
         ActionType, CommandRunResult, FileChange, NormalizedEntry, NormalizedEntryError,
-        NormalizedEntryType, ToolResult, ToolStatus,
+        NormalizedEntryType, TokenUsageInfo, ToolResult, ToolStatus,
         stderr_processor::normalize_stderr_logs,
         utils::{
             EntryIndexProvider,
@@ -439,7 +439,19 @@ enum BobEvent {
     },
     Result {
         status: String,
+        #[serde(default)]
+        stats: Option<BobResultStats>,
     },
+}
+
+#[derive(Debug, Deserialize)]
+struct BobResultStats {
+    #[serde(default)]
+    total_tokens: Option<u32>,
+    #[serde(default)]
+    max_budget: Option<f64>,
+    #[serde(default)]
+    budget_spend: Option<f64>,
 }
 
 struct BobLogState {
@@ -451,6 +463,7 @@ struct BobLogState {
     thinking_content: String,
     in_thinking: bool,
     tool_entries: HashMap<String, BobToolState>,
+    model_name: Option<String>,
 }
 
 impl BobLogState {
@@ -464,6 +477,7 @@ impl BobLogState {
             thinking_content: String::new(),
             in_thinking: false,
             tool_entries: HashMap::new(),
+            model_name: None,
         }
     }
 
@@ -495,6 +509,7 @@ impl BobLogState {
             BobEvent::Init { session_id, model } => {
                 msg_store.push_session_id(session_id);
                 if let Some(model) = model {
+                    self.model_name = Some(model.clone());
                     add_normalized_entry(
                         msg_store,
                         &self.entry_index,
@@ -596,7 +611,8 @@ impl BobLogState {
                     },
                 );
             }
-            BobEvent::Result { status } => {
+            BobEvent::Result { status, stats } => {
+                self.maybe_add_token_usage_entry(msg_store, stats.as_ref());
                 if !status.eq_ignore_ascii_case("success") {
                     self.flush_streaming_entries(msg_store);
                     add_normalized_entry(
@@ -614,6 +630,40 @@ impl BobLogState {
                 }
             }
         }
+    }
+
+    fn maybe_add_token_usage_entry(
+        &self,
+        msg_store: &Arc<MsgStore>,
+        stats: Option<&BobResultStats>,
+    ) {
+        let Some(stats) = stats else {
+            return;
+        };
+        let Some(total_tokens) = stats.total_tokens else {
+            return;
+        };
+        let model_context_window = bob_model_context_window(self.model_name.as_deref());
+        let content = match (stats.budget_spend, stats.max_budget) {
+            (Some(spend), Some(max_budget)) => format!(
+                "Tokens used: {total_tokens} / Context window: {model_context_window} / Bob coins: {spend:.2} / {max_budget:.2}"
+            ),
+            _ => format!("Tokens used: {total_tokens} / Context window: {model_context_window}"),
+        };
+
+        add_normalized_entry(
+            msg_store,
+            &self.entry_index,
+            NormalizedEntry {
+                timestamp: None,
+                entry_type: NormalizedEntryType::TokenUsageInfo(TokenUsageInfo {
+                    total_tokens,
+                    model_context_window,
+                }),
+                content,
+                metadata: None,
+            },
+        );
     }
 
     fn process_assistant_segment(&mut self, msg_store: &Arc<MsgStore>, content: &str) {
@@ -1136,6 +1186,14 @@ fn make_path_relative(path: &str, worktree_path: &str) -> String {
     workspace_utils::path::make_path_relative(path, worktree_path)
 }
 
+fn bob_model_context_window(model_name: Option<&str>) -> u32 {
+    match model_name.unwrap_or_default().to_ascii_lowercase().as_str() {
+        // Bob's "premium" model currently maps to a large-context backend model.
+        "premium" => 200_000,
+        _ => 200_000,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::{
@@ -1372,6 +1430,14 @@ mod tests {
             entry.entry_type,
             NormalizedEntryType::AssistantMessage
         ) && entry.content.contains("OK")));
+        assert!(entries.iter().any(|entry| matches!(
+            entry.entry_type,
+            NormalizedEntryType::TokenUsageInfo(TokenUsageInfo {
+                total_tokens: 53148,
+                model_context_window: 200000
+            })
+        )
+            && entry.content.contains("Bob coins: 4.06 / 100.00")));
     }
 
     #[tokio::test]
@@ -1412,6 +1478,14 @@ mod tests {
                     .content
                     .contains("Rust + TypeScript monorepo for Vibe Kanban")
         }));
+        assert!(entries.iter().any(|entry| matches!(
+            entry.entry_type,
+            NormalizedEntryType::TokenUsageInfo(TokenUsageInfo {
+                total_tokens: 45957,
+                model_context_window: 200000
+            })
+        )
+            && entry.content.contains("Bob coins: 4.17 / 100.00")));
     }
 
     #[tokio::test]

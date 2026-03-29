@@ -263,6 +263,12 @@ html {
     /* Allotment */
     --separator-border: hsl(var(--border));
     --focus-border: hsl(var(--brand));
+
+    /* Scrollbar */
+    --scrollbar-size: 10px;
+    --scrollbar-thumb: 0 0% 52%;
+    --scrollbar-thumb-hover: 0 0% 40%;
+    --scrollbar-track: 0 0% 100%;
   }
 }
 
@@ -272,6 +278,11 @@ html {
   *::before,
   *::after {
     @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    scrollbar-gutter: stable;
   }
 
   html,
@@ -305,6 +316,56 @@ html {
   button * {
     @apply transition-colors duration-200;
     cursor: pointer;
+  }
+
+  /* Premium but subtle global scrollbar treatment */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--scrollbar-thumb) / 0.88)
+      hsl(var(--scrollbar-track) / 0.22);
+  }
+
+  *::-webkit-scrollbar {
+    width: var(--scrollbar-size);
+    height: var(--scrollbar-size);
+  }
+
+  *::-webkit-scrollbar-track {
+    background: hsl(var(--scrollbar-track) / 0.12);
+  }
+
+  *::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    border: 2px solid hsl(var(--scrollbar-track) / 0.35);
+    background: linear-gradient(
+      180deg,
+      hsl(var(--scrollbar-thumb) / 0.95) 0%,
+      hsl(var(--scrollbar-thumb) / 0.75) 100%
+    );
+    transition:
+      background-color 180ms ease,
+      border-color 180ms ease;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    border-color: hsl(var(--scrollbar-track) / 0.55);
+    background: linear-gradient(
+      180deg,
+      hsl(var(--scrollbar-thumb-hover) / 1) 0%,
+      hsl(var(--scrollbar-thumb-hover) / 0.82) 100%
+    );
+  }
+}
+
+.dark {
+  --scrollbar-thumb: 0 0% 38%;
+  --scrollbar-thumb-hover: 0 0% 55%;
+  --scrollbar-track: 0 0% 4%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
   }
 }
 

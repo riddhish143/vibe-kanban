@@ -823,17 +823,33 @@ export function SessionChatBox<TExecutor extends string = string>({
                     }
                     onClick={() => onSelectSession(s.id)}
                   >
-                    <span className="flex items-center gap-1.5 max-w-[200px]">
-                      {renderAgentIcon?.(
-                        s.executor ?? null,
-                        'size-icon shrink-0'
-                      )}
-                      <span className="truncate">
-                        {s.name
-                          ? s.name
-                          : index === 0
-                            ? t('conversation.sessions.latest')
-                            : formatSessionDate(s.created_at)}
+                    <span className="flex items-start gap-2 max-w-[240px] py-half">
+                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-secondary ring-1 ring-border/70">
+                        {s.executor ? (
+                          renderAgentIcon?.(
+                            s.executor,
+                            'h-3.5 w-3.5 object-contain'
+                          )
+                        ) : (
+                          <ChatCircleIcon className="h-3.5 w-3.5 text-low" />
+                        )}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm text-normal">
+                          {s.name
+                            ? s.name
+                            : index === 0
+                              ? t('conversation.sessions.latest')
+                              : t('conversation.sessions.previous')}
+                        </span>
+                        <span className="block truncate text-xs text-low">
+                          {[
+                            s.executor
+                              ? formatExecutorLabel(s.executor as TExecutor)
+                              : t('conversation.executors'),
+                            formatSessionDate(s.created_at),
+                          ].join(' • ')}
+                        </span>
                       </span>
                     </span>
                   </DropdownMenuItem>

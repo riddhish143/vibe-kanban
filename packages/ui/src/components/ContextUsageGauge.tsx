@@ -6,6 +6,8 @@ import { Tooltip } from './Tooltip';
 export interface ContextUsageInfo {
   total_tokens: number;
   model_context_window: number;
+  bob_budget_spend?: number;
+  bob_max_budget?: number;
 }
 
 function clamp(value: number, min: number, max: number) {
@@ -60,6 +62,20 @@ export function ContextUsageGauge({
     };
   }, [tokenUsageInfo]);
 
+  const formattedCoins = useMemo(() => {
+    if (
+      !tokenUsageInfo ||
+      tokenUsageInfo.bob_budget_spend == null ||
+      tokenUsageInfo.bob_max_budget == null
+    ) {
+      return null;
+    }
+    return {
+      used: tokenUsageInfo.bob_budget_spend.toFixed(2),
+      max: tokenUsageInfo.bob_max_budget.toFixed(2),
+    };
+  }, [tokenUsageInfo]);
+
   const progress = clamp(percentage / 100, 0, 1);
 
   const tooltip =
@@ -69,7 +85,10 @@ export function ContextUsageGauge({
           percentage: Math.round(percentage),
           used: formattedUsed,
           total: formattedTotal,
-        });
+        }) +
+        (formattedCoins
+          ? ` • Bob coins: ${formattedCoins.used}/${formattedCoins.max}`
+          : '');
 
   const progressColor =
     status === 'empty'
@@ -91,7 +110,7 @@ export function ContextUsageGauge({
     <Tooltip content={tooltip} side="bottom">
       <div
         className={cn(
-          'flex items-center justify-center rounded-sm p-half',
+          'flex items-center justify-center gap-half rounded-sm p-half',
           'hover:bg-panel transition-colors cursor-help',
           className
         )}
@@ -134,6 +153,11 @@ export function ContextUsageGauge({
             )}
           />
         </svg>
+        {formattedCoins && (
+          <span className="text-[11px] leading-none font-mono text-low tabular-nums">
+            {formattedCoins.used}/{formattedCoins.max}
+          </span>
+        )}
       </div>
     </Tooltip>
   );

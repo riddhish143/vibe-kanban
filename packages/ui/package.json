@@ -39,6 +39,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "developer-icons": "^6.0.4",
+    "framer-motion": "^12.23.24",
     "lexical": "^0.36.2",
     "lucide-react": "^0.541.0",
     "react": "^18.2.0",
