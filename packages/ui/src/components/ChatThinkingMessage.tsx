@@ -30,6 +30,7 @@ export function ChatThinkingMessage({
     <div
       className={cn(
         'flex flex-col motion-safe:animate-chat-fade-in',
+        'border border-border/100 bg-secondary/20 rounded-sm px-base py-base',
         className
       )}
     >
@@ -59,7 +60,7 @@ export function ChatThinkingMessage({
 
       {/* Expanded content */}
       {expanded && (
-        <div className="ml-6 pt-1 pl-base">
+        <div className="ml-base pt-1">
           {renderMarkdown({
             content,
             workspaceId,

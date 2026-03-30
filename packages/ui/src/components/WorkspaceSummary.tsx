@@ -108,8 +108,8 @@ export function WorkspaceSummary({
       >
         <div
           className={cn(
-            'overflow-hidden whitespace-nowrap pr-double',
-            !summary && 'text-normal'
+            'overflow-hidden whitespace-nowrap text-sm pr-double',
+            !summary && 'text-normal font-medium'
           )}
           style={{
             maskImage:
@@ -121,7 +121,7 @@ export function WorkspaceSummary({
           {name}
         </div>
         {(!summary || isActive) && (
-          <div className="flex w-full items-center gap-base text-sm h-5">
+          <div className="flex w-full items-center gap-1.5 text-xs h-4">
             {/* Dev server running - leftmost */}
             {hasRunningDevServer && (
               <PlayIcon

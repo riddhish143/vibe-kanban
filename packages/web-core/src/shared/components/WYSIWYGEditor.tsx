@@ -407,7 +407,7 @@ const WYSIWYGEditor = forwardRef<WYSIWYGEditorRef, WysiwygProps>(
             h1: 'mt-4 mb-2 text-2xl font-semibold',
             h2: 'mt-3 mb-2 text-xl font-semibold',
             h3: 'mt-3 mb-2 text-lg font-semibold',
-            h4: 'mt-2 mb-1 text-base font-medium',
+            h4: 'mt-2 mb-1 text-sm font-medium',
             h5: 'mt-2 mb-1 text-sm font-medium',
             h6: 'mt-2 mb-1 text-xs font-medium uppercase tracking-wide',
           },
@@ -532,7 +532,7 @@ const WYSIWYGEditor = forwardRef<WYSIWYGEditorRef, WysiwygProps>(
       () => (
         <div
           className={cn(
-            'absolute top-0 left-0 text-base text-secondary-foreground text-low pointer-events-none truncate',
+            'absolute top-0 left-0 text-sm text-secondary-foreground text-low pointer-events-none truncate',
             className
           )}
         >
@@ -543,7 +543,7 @@ const WYSIWYGEditor = forwardRef<WYSIWYGEditorRef, WysiwygProps>(
     );
 
     const editorContent = (
-      <div className="wysiwyg text-base relative">
+      <div className="wysiwyg text-sm relative">
         {/* Preview: render a read-only editor with full markdown rendering */}
         {!disabled && isPreviewMode && (
           <div className={cn(className)}>

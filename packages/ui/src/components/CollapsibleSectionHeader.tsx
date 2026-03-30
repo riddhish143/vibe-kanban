@@ -99,7 +99,7 @@ export function CollapsibleSectionHeader({
         {TitleIcon && (
           <TitleIcon className="size-icon-sm shrink-0 text-low" weight="bold" />
         )}
-        <span className="truncate font-medium text-normal">{title}</span>
+        <span className="truncate text-sm font-medium text-normal">{title}</span>
       </span>
       <div className="flex items-center gap-half">
         {headerExtra}

@@ -71,13 +71,14 @@ export const ChatToolSummary = forwardRef<
       className={cn(
         'motion-safe:animate-chat-slide-in',
         'flex items-center gap-base text-sm text-low',
+        'border border-border/40 rounded-sm px-double py-base',
         isClickable && 'cursor-pointer',
         className
       )}
       onClick={isClickable ? handleClick : undefined}
       role={isClickable ? 'button' : undefined}
     >
-      <span className="relative shrink-0 pt-0.5">
+      <span className="relative shrink-0">
         <Icon className="size-icon-base" />
         {status && (
           <ToolStatusDot

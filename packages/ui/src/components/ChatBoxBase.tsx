@@ -1,4 +1,4 @@
-import { type ReactNode } from 'react';
+import { type ReactNode, useRef, useCallback, useEffect } from 'react';
 import { ImageIcon } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../lib/cn';
@@ -55,6 +55,24 @@ interface ChatBoxBaseProps {
   theme?: 'light' | 'dark';
 }
 
+/* ── Spring-physics state for the cursor spotlight ── */
+interface SpringState {
+  // Current smoothed position (0–1 normalized)
+  x: number;
+  y: number;
+  // Velocity
+  vx: number;
+  vy: number;
+  // Target
+  tx: number;
+  ty: number;
+  // Whether the cursor is inside the box
+  active: boolean;
+}
+
+const SPRING_STIFFNESS = 0.08;
+const SPRING_DAMPING = 0.78;
+
 /**
  * Base chat box layout component.
  * Provides shared structure for CreateChatBox and SessionChatBox.
@@ -74,86 +92,272 @@ export function ChatBoxBase({
   theme = 'dark',
 }: ChatBoxBaseProps) {
   const { t } = useTranslation(['common', 'tasks']);
-
   const isDragActive = dropzone?.isDragActive ?? false;
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const spotlightRef = useRef<HTMLDivElement>(null);
+  const glowLeftRef = useRef<HTMLDivElement>(null);
+  const glowRightRef = useRef<HTMLDivElement>(null);
+  const glowBottomRef = useRef<HTMLDivElement>(null);
+  const rafRef = useRef<number>(0);
+
+  const spring = useRef<SpringState>({
+    x: 0.5,
+    y: 0.5,
+    vx: 0,
+    vy: 0,
+    tx: 0.5,
+    ty: 0.5,
+    active: false,
+  });
+
+  /* ── Physics tick (requestAnimationFrame loop) ── */
+  const tick = useCallback(() => {
+    const s = spring.current;
+    const dx = s.tx - s.x;
+    const dy = s.ty - s.y;
+    s.vx = (s.vx + dx * SPRING_STIFFNESS) * SPRING_DAMPING;
+    s.vy = (s.vy + dy * SPRING_STIFFNESS) * SPRING_DAMPING;
+    s.x += s.vx;
+    s.y += s.vy;
+
+    // Update spotlight position
+    if (spotlightRef.current) {
+      spotlightRef.current.style.transform = `translate(${s.x * 100 - 50}%, ${s.y * 100 - 50}%)`;
+      spotlightRef.current.style.opacity = s.active ? '1' : '0';
+    }
+
+    // Shift ambient glow orbs slightly toward cursor for a reactive feel
+    if (glowLeftRef.current) {
+      const pullX = (s.x - 0.5) * 12;
+      const pullY = (s.y - 0.5) * 18;
+      glowLeftRef.current.style.transform = `translate(${pullX}px, ${pullY}px)`;
+    }
+    if (glowRightRef.current) {
+      const pullX = (s.x - 0.5) * 12;
+      const pullY = (s.y - 0.5) * 18;
+      glowRightRef.current.style.transform = `translate(${pullX}px, ${pullY}px)`;
+    }
+    if (glowBottomRef.current) {
+      const pullX = (s.x - 0.5) * 16;
+      glowBottomRef.current.style.transform = `translateX(${pullX}px)`;
+    }
+
+    // Keep ticking while there's visible motion
+    const moving =
+      Math.abs(s.vx) > 0.0001 ||
+      Math.abs(s.vy) > 0.0001 ||
+      Math.abs(dx) > 0.0001 ||
+      Math.abs(dy) > 0.0001;
+
+    if (moving || s.active) {
+      rafRef.current = requestAnimationFrame(tick);
+    }
+  }, []);
+
+  const startLoop = useCallback(() => {
+    cancelAnimationFrame(rafRef.current);
+    rafRef.current = requestAnimationFrame(tick);
+  }, [tick]);
+
+  /* ── Mouse handlers ── */
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent) => {
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const nx = (e.clientX - rect.left) / rect.width;
+      const ny = (e.clientY - rect.top) / rect.height;
+      spring.current.tx = Math.max(0, Math.min(1, nx));
+      spring.current.ty = Math.max(0, Math.min(1, ny));
+      if (!spring.current.active) {
+        spring.current.active = true;
+        startLoop();
+      }
+    },
+    [startLoop]
+  );
+
+  const handleMouseLeave = useCallback(() => {
+    // On leave, send target back to center with current velocity (inertia)
+    spring.current.active = false;
+    spring.current.tx = 0.5;
+    spring.current.ty = 0.5;
+    // Keep the loop running so it drifts back smoothly
+    startLoop();
+  }, [startLoop]);
+
+  useEffect(() => {
+    return () => cancelAnimationFrame(rafRef.current);
+  }, []);
 
   return (
     <div
+      ref={containerRef}
       {...(dropzone?.getRootProps() ?? {})}
       className={cn(
         'relative flex w-full max-w-[56rem] flex-col rounded-xl p-[1px] transition-all duration-300 group',
         isRunning && 'chat-box-running'
       )}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
     >
       <style
         dangerouslySetInnerHTML={{
           __html: `
-          @keyframes neon-sweep {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
+          @keyframes edge-glow-shift {
+            0%   { background-position: 0% 50%; }
+            50%  { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
           }
-          @keyframes neon-glow-pulse {
-            0% { opacity: 0.3; filter: blur(10px); }
-            50% { opacity: 0.6; filter: blur(18px); }
-            100% { opacity: 0.3; filter: blur(10px); }
+          @keyframes edge-glow-pulse {
+            0%, 100% { opacity: ${theme === 'dark' ? '0.55' : '0.35'}; }
+            50%      { opacity: ${theme === 'dark' ? '0.85' : '0.55'}; }
           }
-          .neon-wrapper {
+
+          .edge-border-layer {
             position: absolute;
             inset: 0;
             border-radius: inherit;
-            overflow: hidden;
+            padding: 1.5px;
             pointer-events: none;
-            opacity: ${theme === 'dark' ? '0.8' : '1'};
-          }
-          .neon-sweep {
-            position: absolute;
-            inset: -150%;
-            background: conic-gradient(
-              from 0deg,
-              transparent 0deg,
-              transparent 180deg,
-              ${theme === 'dark' ? 'rgba(59, 130, 246, 0.4)' : 'rgba(37, 99, 235, 0.6)'} 240deg,
-              ${theme === 'dark' ? 'rgba(168, 85, 247, 0.7)' : 'rgba(147, 51, 234, 0.8)'} 300deg,
-              ${theme === 'dark' ? 'rgba(236, 72, 153, 0.4)' : 'rgba(219, 39, 119, 0.6)'} 360deg
+            background: linear-gradient(
+              90deg,
+              ${theme === 'dark'
+                ? '#d4401a, #ff6b35, #ff8c42, transparent 38%, transparent 62%, #4f8ef7, #6366f1, #7b5ec6'
+                : '#c53d19, #e06030, #e07838, transparent 38%, transparent 62%, #3b6fd9, #5558d0, #6d52b0'}
             );
-            animation: neon-sweep 6s linear infinite;
+            background-size: 200% 100%;
+            animation: edge-glow-shift 8s ease-in-out infinite;
+            -webkit-mask:
+              linear-gradient(#fff 0 0) content-box,
+              linear-gradient(#fff 0 0);
+            mask:
+              linear-gradient(#fff 0 0) content-box,
+              linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            opacity: ${theme === 'dark' ? '0.85' : '0.7'};
+            transition: opacity 0.6s ease;
           }
-          .neon-glow-container {
-            position: absolute;
-            inset: -6px;
-            border-radius: 16px;
-            overflow: hidden;
+          .group:hover .edge-border-layer {
+            opacity: 1;
+          }
+          .group:focus-within .edge-border-layer {
+            opacity: 1;
+            animation: edge-glow-shift 5s ease-in-out infinite;
+          }
+
+          .edge-glow-left,
+          .edge-glow-right,
+          .edge-glow-bottom {
             pointer-events: none;
-            filter: blur(12px);
-            opacity: ${theme === 'dark' ? '0.2' : '0.4'};
+            position: absolute;
+            border-radius: 50%;
+            will-change: transform;
+            transition: opacity 0.6s ease, filter 0.6s ease;
+          }
+
+          .edge-glow-left {
+            left: -18px;
+            top: 10%;
+            width: 40%;
+            height: 80%;
+            background: radial-gradient(
+              ellipse at center,
+              ${theme === 'dark'
+                ? 'rgba(212, 64, 26, 0.45), rgba(255, 107, 53, 0.22), transparent 70%'
+                : 'rgba(197, 61, 25, 0.30), rgba(224, 96, 48, 0.15), transparent 70%'}
+            );
+            filter: blur(22px);
+            opacity: ${theme === 'dark' ? '0.5' : '0.35'};
             mix-blend-mode: ${theme === 'dark' ? 'screen' : 'multiply'};
-            transition: all 0.8s ease;
           }
-          .group:hover .neon-glow-container {
-            opacity: ${theme === 'dark' ? '0.4' : '0.6'};
-            filter: blur(20px);
+          .edge-glow-right {
+            right: -18px;
+            top: 10%;
+            width: 40%;
+            height: 80%;
+            background: radial-gradient(
+              ellipse at center,
+              ${theme === 'dark'
+                ? 'rgba(79, 142, 247, 0.45), rgba(99, 102, 241, 0.22), transparent 70%'
+                : 'rgba(59, 111, 217, 0.30), rgba(85, 88, 208, 0.15), transparent 70%'}
+            );
+            filter: blur(22px);
+            opacity: ${theme === 'dark' ? '0.5' : '0.35'};
+            mix-blend-mode: ${theme === 'dark' ? 'screen' : 'multiply'};
           }
-          .group:focus-within .neon-glow-container {
-            opacity: ${theme === 'dark' ? '0.7' : '0.8'};
-            filter: blur(25px);
-            animation: neon-glow-pulse 3s ease-in-out infinite;
+          .edge-glow-bottom {
+            bottom: -10px;
+            left: 20%;
+            width: 60%;
+            height: 40%;
+            background: radial-gradient(
+              ellipse at center,
+              ${theme === 'dark'
+                ? 'rgba(99, 102, 241, 0.18), rgba(79, 142, 247, 0.10), transparent 70%'
+                : 'rgba(85, 88, 208, 0.12), rgba(59, 111, 217, 0.06), transparent 70%'}
+            );
+            filter: blur(18px);
+            opacity: ${theme === 'dark' ? '0.4' : '0.25'};
+            mix-blend-mode: ${theme === 'dark' ? 'screen' : 'multiply'};
           }
-          .group:focus-within .neon-sweep {
-            animation-duration: 4s;
+
+          .group:hover .edge-glow-left,
+          .group:hover .edge-glow-right {
+            opacity: ${theme === 'dark' ? '0.7' : '0.5'};
+            filter: blur(28px);
+          }
+          .group:hover .edge-glow-bottom {
+            opacity: ${theme === 'dark' ? '0.55' : '0.35'};
+            filter: blur(24px);
+          }
+          .group:focus-within .edge-glow-left,
+          .group:focus-within .edge-glow-right {
+            opacity: ${theme === 'dark' ? '0.9' : '0.65'};
+            filter: blur(32px);
+            animation: edge-glow-pulse 3s ease-in-out infinite;
+          }
+          .group:focus-within .edge-glow-bottom {
+            opacity: ${theme === 'dark' ? '0.7' : '0.45'};
+            filter: blur(28px);
+            animation: edge-glow-pulse 3.5s ease-in-out infinite;
+          }
+
+          /* Cursor-tracking spotlight */
+          .edge-cursor-spotlight {
+            position: absolute;
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            pointer-events: none;
+            will-change: transform, opacity;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            filter: blur(30px);
+            mix-blend-mode: ${theme === 'dark' ? 'screen' : 'multiply'};
+            z-index: 1;
+            background: radial-gradient(
+              circle at center,
+              ${theme === 'dark'
+                ? 'rgba(255, 140, 66, 0.5), rgba(99, 102, 241, 0.3), transparent 70%'
+                : 'rgba(224, 96, 48, 0.35), rgba(85, 88, 208, 0.2), transparent 70%'}
+            );
           }
         `,
         }}
       />
 
-      {/* Glow Layer (Large blurred sweep) */}
-      <div className="neon-glow-container">
-        <div className="neon-sweep" />
-      </div>
+      {/* Cursor-tracking spotlight (positioned via spring physics) */}
+      <div ref={spotlightRef} className="edge-cursor-spotlight" />
 
-      {/* Border Layer (Tight sweep in overflow-hidden box) */}
-      <div className="neon-wrapper">
-        <div className="neon-sweep" />
-      </div>
+      {/* Ambient glow layers (shift with cursor via physics) */}
+      <div ref={glowLeftRef} className="edge-glow-left" />
+      <div ref={glowRightRef} className="edge-glow-right" />
+      <div ref={glowBottomRef} className="edge-glow-bottom" />
+
+      {/* Border gradient layer */}
+      <div className="edge-border-layer" />
       <div
         className={cn(
           'relative flex flex-col w-full h-full rounded-[10px] bg-secondary overflow-hidden z-10',

@@ -265,11 +265,11 @@ export function WorkspacesSidebar({
         {showArchive ? (
           /* Archived workspaces view */
           <div className="flex flex-col gap-base">
-            <span className="text-sm font-medium text-low px-base">
+            <span className="text-xs font-medium text-low px-base">
               {t('common:workspaces.archived')}
             </span>
             {archivedWorkspaces.length === 0 ? (
-              <span className="text-sm text-low opacity-60 px-base">
+              <span className="text-xs text-low opacity-60 px-base">
                 {t('common:workspaces.noArchived')}
               </span>
             ) : (
@@ -316,7 +316,7 @@ export function WorkspacesSidebar({
                   />
                 )}
                 {raisedHandWorkspaces.length === 0 && !draftTitle ? (
-                  <span className="text-sm text-low opacity-60 pl-base">
+                  <span className="text-xs text-low opacity-60 pl-base">
                     {t('common:workspaces.noWorkspaces')}
                   </span>
                 ) : (
@@ -338,7 +338,7 @@ export function WorkspacesSidebar({
             >
               <div className="flex flex-col gap-base py-half">
                 {runningWorkspaces.length === 0 ? (
-                  <span className="text-sm text-low opacity-60 pl-base">
+                  <span className="text-xs text-low opacity-60 pl-base">
                     {t('common:workspaces.noWorkspaces')}
                   </span>
                 ) : (
@@ -360,7 +360,7 @@ export function WorkspacesSidebar({
             >
               <div className="flex flex-col gap-base py-half">
                 {idleWorkspaces.length === 0 ? (
-                  <span className="text-sm text-low opacity-60 pl-base">
+                  <span className="text-xs text-low opacity-60 pl-base">
                     {t('common:workspaces.noWorkspaces')}
                   </span>
                 ) : (
@@ -378,7 +378,7 @@ export function WorkspacesSidebar({
           /* Active workspaces flat view */
           <div className="flex flex-col gap-base">
             <div className="flex items-center justify-between px-base">
-              <span className="text-sm font-medium text-low">
+              <span className="text-xs font-medium text-low">
                 {t('common:workspaces.active')}
               </span>
               <span className="text-xs text-low">{totalWorkspacesCount}</span>
@@ -420,7 +420,7 @@ export function WorkspacesSidebar({
       <div className="border-t border-primary p-base">
         <button
           onClick={() => onShowArchiveChange?.(!showArchive)}
-          className="w-full flex items-center gap-base text-sm text-low hover:text-normal transition-colors duration-100"
+          className="w-full flex items-center gap-base text-xs text-low hover:text-normal transition-colors duration-100"
         >
           {showArchive ? (
             <>
@@ -431,7 +431,7 @@ export function WorkspacesSidebar({
             <>
               <ArchiveIcon className="size-icon-xs" />
               <span>{t('common:workspaces.viewArchive')}</span>
-              <span className="ml-auto text-xs bg-tertiary px-1.5 py-0.5 rounded">
+              <span className="ml-auto text-[10px] bg-tertiary px-1.5 py-0.5 rounded">
                 {archivedWorkspaces.length}
               </span>
             </>
