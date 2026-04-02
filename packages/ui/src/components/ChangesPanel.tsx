@@ -7,7 +7,10 @@ import { cn } from '../lib/cn';
 export interface ChangesPanelHandle {
   scrollToIndex: (
     index: number,
-    options?: { align?: 'start' | 'center' | 'end' }
+    options?: {
+      align?: 'start' | 'center' | 'end';
+      behavior?: 'auto' | 'smooth';
+    }
   ) => void;
 }
 
@@ -101,12 +104,15 @@ const ChangesPanelInner = <TDiff extends ChangesPanelDiff>(
   useImperativeHandle(ref, () => ({
     scrollToIndex: (
       index: number,
-      options?: { align?: 'start' | 'center' | 'end' }
+      options?: {
+        align?: 'start' | 'center' | 'end';
+        behavior?: 'auto' | 'smooth';
+      }
     ) => {
       virtuosoRef.current?.scrollToIndex({
         index,
         align: options?.align ?? 'start',
-        behavior: 'auto',
+        behavior: options?.behavior ?? 'auto',
       });
     },
   }));

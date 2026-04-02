@@ -228,7 +228,10 @@ export function ChangesPanelContainer({
       const index = stateMachineScrollToFile(path, lineNumber);
       if (index === null) return;
 
-      changesPanelRef.current?.scrollToIndex(index, { align: 'start' });
+      changesPanelRef.current?.scrollToIndex(index, {
+        align: 'start',
+        behavior: 'smooth',
+      });
 
       requestAnimationFrame(() => {
         setTimeout(() => {
@@ -238,7 +241,7 @@ export function ChangesPanelContainer({
               const selector = `[data-line="${lineNumber}"]`;
               const commentEl = fileEl.querySelector(selector);
               commentEl?.scrollIntoView({
-                behavior: 'instant',
+                behavior: 'smooth',
                 block: 'center',
               });
             }
@@ -262,7 +265,10 @@ export function ChangesPanelContainer({
     if (index === undefined) return;
 
     const timeoutId = setTimeout(() => {
-      changesPanelRef.current?.scrollToIndex(index, { align: 'start' });
+      changesPanelRef.current?.scrollToIndex(index, {
+        align: 'start',
+        behavior: 'smooth',
+      });
 
       if (selectedLineNumber) {
         setTimeout(() => {
@@ -270,7 +276,7 @@ export function ChangesPanelContainer({
           if (fileEl) {
             const selector = `[data-line="${selectedLineNumber}"]`;
             const commentEl = fileEl.querySelector(selector);
-            commentEl?.scrollIntoView({ behavior: 'instant', block: 'center' });
+            commentEl?.scrollIntoView({ behavior: 'smooth', block: 'center' });
           }
         }, 100);
       }
