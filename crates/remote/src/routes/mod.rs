@@ -43,6 +43,7 @@ pub mod notifications;
 mod oauth;
 pub(crate) mod organization_members;
 mod organizations;
+mod presence;
 pub mod project_statuses;
 pub mod projects;
 mod pull_requests;
@@ -106,7 +107,8 @@ pub fn router(state: AppState) -> Router {
         .merge(tokens::public_router())
         .merge(review::public_router())
         .merge(github_app::public_router())
-        .merge(billing::public_router());
+        .merge(billing::public_router())
+        .merge(presence::router());
 
     let v1_protected = Router::<AppState>::new()
         .merge(identity::router())

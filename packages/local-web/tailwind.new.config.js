@@ -183,6 +183,11 @@ module.exports = {
           '0%': { opacity: '0', transform: 'translateX(-6px)' },
           '100%': { opacity: '1', transform: 'translateX(0)' },
         },
+        'diffusion-in': {
+          '0%': { opacity: '0', filter: 'blur(8px)' },
+          '40%': { opacity: '0.6', filter: 'blur(4px)' },
+          '100%': { opacity: '1', filter: 'blur(0px)' },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -196,6 +201,7 @@ module.exports = {
         'chat-entry-in': 'chat-entry-in 0.3s ease-out both',
         'chat-fade-in': 'chat-fade-in 0.25s ease-out both',
         'chat-slide-in': 'chat-slide-in 0.3s ease-out both',
+        'diffusion-in': 'diffusion-in 0.8s ease-out both',
       },
     },
   },

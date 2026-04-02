@@ -14,6 +14,7 @@ import type { WorkspaceWithSession } from '@/shared/types/attempt';
 import { parseDiffStats } from '@/shared/lib/diffStatsParser';
 import {
   usePersistedExpanded,
+  useUiPreferencesStore,
   type PersistKey,
 } from '@/shared/stores/useUiPreferencesStore';
 import { getActualTheme } from '@/shared/lib/theme';
@@ -55,6 +56,7 @@ import {
 } from '@vibe/ui/components/PierreConversationDiff';
 import { inIframe, openFileInVSCode } from '@/integrations/vscode/bridge';
 import { useDiffViewMode } from '@/shared/stores/useDiffViewStore';
+import { DiffusionText } from '@/shared/components/DiffusionText';
 import type {
   AggregatedPatchGroup,
   AggregatedDiffGroup,
@@ -348,6 +350,7 @@ function DisplayConversationEntry(props: Props) {
         <AssistantMessageEntry
           content={entry.content}
           workspaceId={workspaceWithSession?.id}
+          entryKey={expansionKey}
         />
       );
 
@@ -843,21 +846,31 @@ function LoadingEntry() {
 function AssistantMessageEntry({
   content,
   workspaceId,
+  entryKey,
 }: {
   content: string;
   workspaceId: string | undefined;
+  entryKey: string;
 }) {
+  const diffusionEnabled = useUiPreferencesStore((s) => s.diffusionEffect);
+
   return (
     <ChatAssistantMessage
       content={content}
       workspaceId={workspaceId}
       renderMarkdown={({ content, workspaceId }) => (
-        <AppChatMarkdown
+        <DiffusionText
+          enabled={diffusionEnabled}
           content={content}
-          workspaceId={workspaceId}
-          className={undefined}
-          maxWidth={undefined}
-        />
+          entryKey={entryKey}
+        >
+          <AppChatMarkdown
+            content={content}
+            workspaceId={workspaceId}
+            className={undefined}
+            maxWidth={undefined}
+          />
+        </DiffusionText>
       )}
     />
   );

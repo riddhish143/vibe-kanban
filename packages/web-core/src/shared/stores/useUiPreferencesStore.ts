@@ -28,6 +28,7 @@ export type MobileFontScale = 'default' | 'small' | 'smaller';
 export const DEFAULT_CREATE_DRAFT_WORKSPACE_BY_DEFAULT = false;
 
 const MOBILE_FONT_SCALE_KEY = 'vk-mobile-font-scale';
+const DIFFUSION_EFFECT_KEY = 'vk-diffusion-effect';
 
 const loadMobileFontScale = (): MobileFontScale => {
   try {
@@ -37,6 +38,14 @@ const loadMobileFontScale = (): MobileFontScale => {
     // localStorage may be unavailable
   }
   return 'default';
+};
+
+const loadDiffusionEffect = (): boolean => {
+  try {
+    return localStorage.getItem(DIFFUSION_EFFECT_KEY) === 'true';
+  } catch {
+    return false;
+  }
 };
 
 export type KanbanViewMode = 'kanban' | 'list';
@@ -344,6 +353,9 @@ type State = {
   // Mobile font scale
   mobileFontScale: MobileFontScale;
 
+  // Diffusion text effect
+  diffusionEffect: boolean;
+
   // Last selected organization and project (persisted via scratch store)
   selectedOrgId: string | null;
   selectedProjectId: string | null;
@@ -427,6 +439,9 @@ type State = {
   // Mobile font scale actions
   setMobileFontScale: (scale: MobileFontScale) => void;
 
+  // Diffusion text effect actions
+  setDiffusionEffect: (enabled: boolean) => void;
+
   // Last selected organization and project actions
   setSelectedOrgId: (orgId: string | null) => void;
   clearSelectedOrgId: () => void;
@@ -470,6 +485,9 @@ export const useUiPreferencesStore = create<State>()((set, get) => ({
 
   // Mobile font scale
   mobileFontScale: loadMobileFontScale(),
+
+  // Diffusion text effect
+  diffusionEffect: loadDiffusionEffect(),
 
   // Last selected organization and project
   selectedOrgId: null,
@@ -799,6 +817,19 @@ export const useUiPreferencesStore = create<State>()((set, get) => ({
     set({ mobileFontScale: scale });
   },
 
+  setDiffusionEffect: (enabled) => {
+    try {
+      if (enabled) {
+        localStorage.setItem(DIFFUSION_EFFECT_KEY, 'true');
+      } else {
+        localStorage.removeItem(DIFFUSION_EFFECT_KEY);
+      }
+    } catch {
+      // localStorage may be unavailable
+    }
+    set({ diffusionEffect: enabled });
+  },
+
   // Last selected organization and project actions
   setSelectedOrgId: (orgId) => set({ selectedOrgId: orgId }),
   clearSelectedOrgId: () => set({ selectedOrgId: null }),
@@ -897,6 +928,13 @@ export function useMobileFontScale() {
   const scale = useUiPreferencesStore((s) => s.mobileFontScale);
   const set = useUiPreferencesStore((s) => s.setMobileFontScale);
   return [scale, set] as const;
+}
+
+// Hook for diffusion text effect
+export function useDiffusionEffect() {
+  const enabled = useUiPreferencesStore((s) => s.diffusionEffect);
+  const set = useUiPreferencesStore((s) => s.setDiffusionEffect);
+  return [enabled, set] as const;
 }
 
 // Hook for workspace-specific panel state

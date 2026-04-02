@@ -181,6 +181,8 @@ impl Server {
             spawn_cleanup_task(pool.clone(), azure_blob_service.clone());
         }
 
+        let presence = crate::presence::PresenceManager::new();
+
         let state = AppState::new(
             pool.clone(),
             config.clone(),
@@ -195,6 +197,7 @@ impl Server {
             github_app,
             billing,
             analytics,
+            presence,
         );
 
         let router = routes::router(state);

@@ -8,6 +8,7 @@ import { useProjectContext } from '@/shared/hooks/useProjectContext';
 import { useActions } from '@/shared/hooks/useActions';
 import { usePageTitle } from '@/shared/hooks/usePageTitle';
 import { KanbanContainer } from '@/features/kanban/ui/KanbanContainer';
+import { PresenceProvider } from '@/shared/providers/PresenceProvider';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import { ProjectRightSidebarContainer } from './ProjectRightSidebarContainer';
 import { LoginRequiredPrompt } from '@/shared/dialogs/shared/LoginRequiredPrompt';
@@ -193,11 +194,13 @@ function ProjectKanbanInner({ projectId }: { projectId: string }) {
   }
 
   return (
-    <ProjectProvider projectId={projectId}>
-      <ProjectMutationsRegistration>
-        <ProjectKanbanLayout projectName={project.name} />
-      </ProjectMutationsRegistration>
-    </ProjectProvider>
+    <PresenceProvider projectId={projectId}>
+      <ProjectProvider projectId={projectId}>
+        <ProjectMutationsRegistration>
+          <ProjectKanbanLayout projectName={project.name} />
+        </ProjectMutationsRegistration>
+      </ProjectProvider>
+    </PresenceProvider>
   );
 }
 

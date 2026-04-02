@@ -70,6 +70,9 @@ import {
 import { SearchableTagDropdownContainer } from '@/shared/components/SearchableTagDropdownContainer';
 import type { IssuePriority } from 'shared/remote-types';
 import type { PropertyDropdownOption } from '@vibe/ui/components/PropertyDropdown';
+import { PresenceAvatars } from '@/shared/components/presence/PresenceAvatars';
+import { PresenceIndicator } from '@/shared/components/presence/PresenceIndicator';
+import { usePresenceActions } from '@/shared/providers/PresenceProvider';
 
 type KanbanGroupBy = 'none' | 'assignee';
 
@@ -171,11 +174,18 @@ export function KanbanContainer() {
   } = useOrgContext();
   const { activeWorkspaces } = useWorkspaceContext();
   const { userId } = useAuth();
+  const { setViewingIssue } = usePresenceActions();
 
   // Get project name by finding the project matching current projectId
   const projectName = projects.find((p) => p.id === projectId)?.name ?? '';
 
   const selectedKanbanIssueId = routeState.issueId;
+
+  // Sync presence when issue panel opens/closes
+  useEffect(() => {
+    setViewingIssue(selectedKanbanIssueId ?? null);
+  }, [selectedKanbanIssueId, setViewingIssue]);
+
   const issueComposerKey = useMemo(
     () => buildKanbanIssueComposerKey(routeState.hostId, projectId),
     [routeState.hostId, projectId]
@@ -748,9 +758,10 @@ export function KanbanContainer() {
 
   const handleCardClick = useCallback(
     (issueId: string) => {
+      setViewingIssue(issueId);
       openIssue(issueId);
     },
-    [openIssue]
+    [openIssue, setViewingIssue]
   );
 
   const handleAddTask = useCallback(
@@ -971,6 +982,10 @@ export function KanbanContainer() {
           <h2 className={cn('text-2xl font-medium', isMobile && 'text-lg')}>
             {projectName}
           </h2>
+
+          <div className="ml-auto">
+            <PresenceAvatars />
+          </div>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -1297,6 +1312,7 @@ export function KanbanContainer() {
                                     ),
                                   }}
                                 />
+                                <PresenceIndicator issueId={issue.id} />
                                 {issueWorkspaces.length > 0 && (
                                   <div className="mt-base flex flex-col gap-half">
                                     {issueWorkspaces.map((workspace) => (
