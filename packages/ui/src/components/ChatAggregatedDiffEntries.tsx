@@ -246,6 +246,7 @@ export function ChatAggregatedDiffEntries({
   }, [entries]);
 
   const isDenied = aggregateStatus?.status === 'denied';
+  const isSuccess = aggregateStatus?.status === 'success';
   const hasStats = totalStats.additions > 0 || totalStats.deletions > 0;
 
   return (
@@ -254,13 +255,16 @@ export function ChatAggregatedDiffEntries({
         'motion-safe:animate-chat-entry-in',
         'rounded-sm border overflow-hidden',
         isDenied && 'border-error bg-error/10',
+        isSuccess && 'border-success/50 bg-success/5',
         className
       )}
     >
       <div
         className={cn(
           'flex items-center p-base w-full',
-          isDenied ? 'bg-error/20' : 'bg-panel',
+          isDenied && 'bg-error/20',
+          isSuccess && 'bg-success/10',
+          !isDenied && !isSuccess && 'bg-panel',
           'cursor-pointer'
         )}
         onClick={handleClick}

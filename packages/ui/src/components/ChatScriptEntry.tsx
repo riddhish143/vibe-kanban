@@ -54,7 +54,10 @@ export function ChatScriptEntry({
   return (
     <div
       className={cn(
-        'flex items-start gap-base text-sm cursor-pointer hover:bg-secondary/50 rounded-md -mx-half px-half py-half transition-colors',
+        'flex items-start gap-base text-sm cursor-pointer rounded-md -mx-half px-half py-half transition-colors',
+        isSuccess && 'bg-success/5 hover:bg-success/10',
+        isFailed && 'bg-error/5 hover:bg-error/10',
+        !isSuccess && !isFailed && 'hover:bg-secondary/50',
         className
       )}
       onClick={handleClick}

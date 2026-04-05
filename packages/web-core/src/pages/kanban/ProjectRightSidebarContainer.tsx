@@ -301,7 +301,7 @@ function WorkspaceSessionPanel({
                 </div>
               )}
 
-              <div className="flex justify-center @container pl-px">
+              <div className="flex justify-center @container pl-px pb-4">
                 <SessionChatBoxContainer
                   {...(isSessionsLoading || isWorkspaceLoading
                     ? {

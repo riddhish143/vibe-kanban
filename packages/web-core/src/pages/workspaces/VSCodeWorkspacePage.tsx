@@ -110,7 +110,7 @@ export function VSCodeWorkspacePage() {
                     </div>
                   </div>
                 )}
-                <div className="flex justify-center @container pl-px">
+                <div className="flex justify-center @container pl-px pb-4">
                   <SessionChatBoxContainer
                     {...(isNewSessionMode && workspaceWithSession
                       ? {

@@ -346,6 +346,9 @@ function DisplayConversationEntry(props: Props) {
       );
 
     case 'assistant_message':
+      if (!entry.content || entry.content.trim().length === 0) {
+        return null;
+      }
       return (
         <AssistantMessageEntry
           content={entry.content}
@@ -853,6 +856,8 @@ function AssistantMessageEntry({
   entryKey: string;
 }) {
   const diffusionEnabled = useUiPreferencesStore((s) => s.diffusionEffect);
+  const assistantMessageClassName =
+    'leading-relaxed [&_p]:mb-3 [&_p:last-child]:mb-0 [&_ul]:my-3 [&_ol]:my-3 [&_li]:my-1 [&_blockquote]:my-3 [&_h1]:text-brand [&_h2]:text-brand [&_h3]:text-brand [&_h4]:text-brand [&_h5]:text-brand [&_h6]:text-brand [&_strong]:text-brand [&_b]:text-brand [&_.font-semibold]:text-brand';
 
   return (
     <ChatAssistantMessage
@@ -867,7 +872,7 @@ function AssistantMessageEntry({
           <AppChatMarkdown
             content={content}
             workspaceId={workspaceId}
-            className={undefined}
+            className={assistantMessageClassName}
             maxWidth={undefined}
           />
         </DiffusionText>
@@ -1362,6 +1367,15 @@ function AggregatedDiffGroupEntry({ group }: { group: AggregatedDiffGroup }) {
 const DisplayConversationEntrySpaced = (props: Props) => {
   const { isEntryGreyed } = useMessageEditContext();
   const isGreyed = isEntryGreyed(props.expansionKey);
+
+  // Skip rendering wrapper for empty assistant messages
+  if (
+    props.entry &&
+    props.entry.entry_type.type === 'assistant_message' &&
+    (!props.entry.content || props.entry.content.trim().length === 0)
+  ) {
+    return null;
+  }
 
   return (
     <div

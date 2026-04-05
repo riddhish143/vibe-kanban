@@ -78,6 +78,22 @@ pub struct Bob {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sandbox: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(
+        description = "Sandbox backend/type. Examples: docker, podman, sandbox-exec. Sets BOB_SHELL_SANDBOX."
+    )]
+    pub sandbox_type: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(description = "macOS Seatbelt profile. Sets SEATBELT_PROFILE.")]
+    pub seatbelt_profile: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(description = "Extra container sandbox flags. Sets SANDBOX_FLAGS.")]
+    pub sandbox_flags: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(
+        description = "Override Linux UID/GID mapping behavior for container sandboxing. Sets SANDBOX_SET_UID_GID."
+    )]
+    pub sandbox_set_uid_gid: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(description = "Trust the current Bob workspace.")]
     pub trust: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -107,6 +123,9 @@ pub struct Bob {
         description = "Bob chat mode slug. Supports built-in modes (advanced, code, ask, plan) and custom mode slugs."
     )]
     pub chat_mode: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(description = "Hide intermediary output and show only final completion output.")]
+    pub hide_intermediary_output: Option<bool>,
     #[serde(flatten)]
     pub cmd: CmdOverrides,
 }
@@ -162,8 +181,48 @@ impl Bob {
                 builder = builder.extend_params(["--include-directories", dir.as_str()]);
             }
         }
+        if self.hide_intermediary_output.unwrap_or(false) {
+            builder = builder.extend_params(["--hide-intermediary-output"]);
+        }
 
         apply_overrides(builder, &self.cmd)
+    }
+
+    fn runtime_env_overrides(&self) -> Vec<(String, String)> {
+        let mut overrides = Vec::new();
+
+        if let Some(sandbox_type) = self
+            .sandbox_type
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+        {
+            overrides.push(("BOB_SHELL_SANDBOX".to_string(), sandbox_type.to_string()));
+        }
+
+        if let Some(profile) = self
+            .seatbelt_profile
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+        {
+            overrides.push(("SEATBELT_PROFILE".to_string(), profile.to_string()));
+        }
+
+        if let Some(flags) = self
+            .sandbox_flags
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+        {
+            overrides.push(("SANDBOX_FLAGS".to_string(), flags.to_string()));
+        }
+
+        if let Some(value) = self.sandbox_set_uid_gid {
+            overrides.push(("SANDBOX_SET_UID_GID".to_string(), value.to_string()));
+        }
+
+        overrides
     }
 
     fn chat_mode(&self) -> &str {
@@ -230,11 +289,13 @@ impl StandardCodingAgentExecutor for Bob {
         prompt: &str,
         env: &ExecutionEnv,
     ) -> Result<SpawnedChild, ExecutorError> {
+        let runtime_env_overrides = self.runtime_env_overrides();
         spawn_bob(
             self.build_command_builder()?.build_initial()?,
             Some(self.append_prompt.combine_prompt(prompt)),
             current_dir,
             env,
+            &runtime_env_overrides,
             &self.cmd,
         )
         .await
@@ -248,11 +309,13 @@ impl StandardCodingAgentExecutor for Bob {
         _reset_to_message_id: Option<&str>,
         env: &ExecutionEnv,
     ) -> Result<SpawnedChild, ExecutorError> {
+        let runtime_env_overrides = self.runtime_env_overrides();
         spawn_bob(
             self.build_resume_command(session_id, &self.append_prompt.combine_prompt(prompt))?,
             None,
             current_dir,
             env,
+            &runtime_env_overrides,
             &self.cmd,
         )
         .await
@@ -356,6 +419,7 @@ async fn spawn_bob(
     prompt: Option<String>,
     current_dir: &Path,
     env: &ExecutionEnv,
+    runtime_env_overrides: &[(String, String)],
     cmd_overrides: &CmdOverrides,
 ) -> Result<SpawnedChild, ExecutorError> {
     let (program_path, args) = command_parts.into_resolved().await?;
@@ -373,6 +437,9 @@ async fn spawn_bob(
     env.clone()
         .with_profile(cmd_overrides)
         .apply_to_command(&mut command);
+    for (key, value) in runtime_env_overrides {
+        command.env(key, value);
+    }
 
     let mut child = command.group_spawn_no_window()?;
 
@@ -1302,6 +1369,7 @@ mod tests {
             include_directories: Some(vec!["../shared".to_string(), "../docs".to_string()]),
             chat_mode: Some("ask".to_string()),
             approval_mode: Some("auto_edit".to_string()),
+            hide_intermediary_output: Some(true),
             ..Default::default()
         };
 
@@ -1312,7 +1380,35 @@ mod tests {
             .unwrap();
         assert_eq!(
             format!("{command:?}"),
-            r#"CommandParts { program: "bob", args: ["--accept-license", "--output-format", "stream-json", "--chat-mode", "ask", "--approval-mode", "auto_edit", "--sandbox", "--trust", "--max-coins", "42", "--pre-check-auto-approved", "--allowed-tools", "git status", "--allowed-tools", "npm test", "--allowed-mcp-server-names", "github", "--allowed-mcp-server-names", "notion", "--include-directories", "../shared", "--include-directories", "../docs"] }"#
+            r#"CommandParts { program: "bob", args: ["--accept-license", "--output-format", "stream-json", "--chat-mode", "ask", "--approval-mode", "auto_edit", "--sandbox", "--trust", "--max-coins", "42", "--pre-check-auto-approved", "--allowed-tools", "git status", "--allowed-tools", "npm test", "--allowed-mcp-server-names", "github", "--allowed-mcp-server-names", "notion", "--include-directories", "../shared", "--include-directories", "../docs", "--hide-intermediary-output"] }"#
+        );
+    }
+
+    #[test]
+    fn bob_builds_runtime_sandbox_env_overrides() {
+        let bob = Bob {
+            sandbox_type: Some("docker".to_string()),
+            seatbelt_profile: Some("restrictive-open".to_string()),
+            sandbox_flags: Some("--memory=4g --cpus=2".to_string()),
+            sandbox_set_uid_gid: Some(true),
+            ..Default::default()
+        };
+
+        let env_overrides = bob.runtime_env_overrides();
+        assert_eq!(
+            env_overrides,
+            vec![
+                ("BOB_SHELL_SANDBOX".to_string(), "docker".to_string()),
+                (
+                    "SEATBELT_PROFILE".to_string(),
+                    "restrictive-open".to_string()
+                ),
+                (
+                    "SANDBOX_FLAGS".to_string(),
+                    "--memory=4g --cpus=2".to_string()
+                ),
+                ("SANDBOX_SET_UID_GID".to_string(), "true".to_string()),
+            ]
         );
     }
 

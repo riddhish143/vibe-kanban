@@ -30,7 +30,7 @@ export function ChatThinkingMessage({
     <div
       className={cn(
         'flex flex-col motion-safe:animate-chat-fade-in',
-        'border border-border/100 bg-secondary/20 rounded-sm px-base py-base',
+        'border border-success/50 bg-success/5 rounded-sm px-double py-base',
         className
       )}
     >

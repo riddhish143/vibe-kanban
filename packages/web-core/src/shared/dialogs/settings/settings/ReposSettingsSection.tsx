@@ -3,13 +3,20 @@ import { useTranslation } from 'react-i18next';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { isEqual } from 'lodash';
 import { GitBranchIcon, PlusIcon, SpinnerIcon } from '@phosphor-icons/react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, RefreshCw, Trash2 } from 'lucide-react';
 import { create, useModal } from '@ebay/nice-modal-react';
 import { useRepoBranches } from '@/shared/hooks/useRepoBranches';
 import { useScriptPlaceholders } from '@/shared/hooks/useScriptPlaceholders';
 import { useAllOrganizationProjects } from '@/shared/hooks/useAllOrganizationProjects';
 import { getProjectRepoDefaults } from '@/shared/hooks/useProjectRepoDefaults';
-import { repoApi, ApiError } from '@/shared/lib/api';
+import {
+  repoApi,
+  ApiError,
+  type RepoWorktreeInfo,
+  type RepoWorktreeStatus,
+  type BobShellScope,
+  type SaveBobShellConfigFile,
+} from '@/shared/lib/api';
 import { defineModal } from '@/shared/lib/modals';
 import type { Repo, UpdateRepo } from 'shared/types';
 import { SearchableDropdownContainer } from '@/shared/components/ui-new/containers/SearchableDropdownContainer';
@@ -121,6 +128,187 @@ const RemoveRepoDialog = defineModal<RemoveRepoDialogProps, RemoveRepoResult>(
   RemoveRepoDialogImpl
 );
 
+interface RemoveWorktreesDialogProps {
+  worktrees: RepoWorktreeInfo[];
+  requireForce: boolean;
+}
+
+interface RemoveWorktreesDialogResult {
+  action: 'confirm' | 'cancel';
+  force: boolean;
+}
+
+const RemoveWorktreesDialogImpl = create<RemoveWorktreesDialogProps>(
+  ({ worktrees, requireForce }) => {
+    const modal = useModal();
+    const [force, setForce] = useState(requireForce);
+    const displayRows = worktrees.slice(0, 5);
+    const hiddenCount = Math.max(0, worktrees.length - displayRows.length);
+
+    const handleConfirm = () => {
+      modal.resolve({
+        action: 'confirm',
+        force,
+      } satisfies RemoveWorktreesDialogResult);
+      modal.hide();
+    };
+
+    const handleCancel = () => {
+      modal.resolve({
+        action: 'cancel',
+        force: false,
+      } satisfies RemoveWorktreesDialogResult);
+      modal.hide();
+    };
+
+    const handleOpenChange = (open: boolean) => {
+      if (!open) handleCancel();
+    };
+
+    return (
+      <Dialog open={modal.visible} onOpenChange={handleOpenChange}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              {worktrees.length === 1
+                ? 'Delete worktree?'
+                : `Delete ${worktrees.length} worktrees?`}
+            </DialogTitle>
+            <DialogDescription>
+              This removes the selected git worktrees from disk. The primary
+              repository worktree cannot be removed.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2">
+            {displayRows.map((worktree) => (
+              <div
+                key={worktree.path}
+                className="rounded-sm border border-border bg-secondary/40 p-2"
+              >
+                <p className="text-sm font-medium text-normal">
+                  {worktree.branch ?? 'detached'}
+                </p>
+                <p className="font-mono text-xs text-low break-all">
+                  {worktree.path}
+                </p>
+              </div>
+            ))}
+            {hiddenCount > 0 && (
+              <p className="text-sm text-low">+ {hiddenCount} more…</p>
+            )}
+          </div>
+
+          {requireForce && (
+            <label className="flex items-start gap-2 rounded-sm border border-error/40 bg-error/10 p-2">
+              <input
+                type="checkbox"
+                checked={force}
+                onChange={(event) => setForce(event.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-border bg-secondary text-brand focus:ring-brand focus:ring-offset-0"
+              />
+              <span className="text-sm text-normal">
+                Force delete dirty/locked worktrees (`git worktree remove
+                --force`).
+              </span>
+            </label>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={handleCancel}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirm}
+              disabled={requireForce && !force}
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+);
+
+const RemoveWorktreesDialog = defineModal<
+  RemoveWorktreesDialogProps,
+  RemoveWorktreesDialogResult
+>(RemoveWorktreesDialogImpl);
+
+const WORKTREE_STATUS_PRIORITY: Record<RepoWorktreeStatus, number> = {
+  locked: 0,
+  dirty: 1,
+  clean: 2,
+};
+
+function getWorktreeStatusBadgeClass(status: RepoWorktreeStatus): string {
+  switch (status) {
+    case 'locked':
+      return 'border-error/50 bg-error/10 text-error';
+    case 'dirty':
+      return 'border-brand/50 bg-brand/10 text-brand';
+    case 'clean':
+    default:
+      return 'border-success/50 bg-success/10 text-success';
+  }
+}
+
+function formatWorktreeActivity(timestamp: string | null): string {
+  if (!timestamp) return 'Unknown';
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return 'Unknown';
+  return date.toLocaleString();
+}
+
+const BOB_SETTINGS_TEMPLATE = `{
+  "tools": {
+    "allowed": [],
+    "core": [
+      "read_file",
+      "search_files",
+      "list_files",
+      "execute_command"
+    ],
+    "exclude": []
+  },
+  "context": {
+    "fileFiltering": {
+      "respectGitIgnore": true,
+      "respectBobIgnore": true
+    }
+  }
+}`;
+
+const BOB_CUSTOM_MODES_TEMPLATE = `customModes:
+  - slug: shell-debug
+    name: Shell Debugger
+    description: Debug command-line issues quickly.
+    roleDefinition: Focus on shell diagnosis and minimal-risk fixes.
+    groups:
+      - read
+      - command
+    whenToUse: Use for build/test/CI command failures.
+    customInstructions: Ask before running destructive commands.`;
+
+const BOBIGNORE_TEMPLATE = `# Secrets
+.env
+*.pem
+*.key
+
+# Build outputs
+dist/
+build/
+target/
+
+# Logs
+*.log
+
+# Keep sample env file
+!.env.example
+`;
+
 // ── Main section ─────────────────────────────────────────────────────
 interface ReposSettingsSectionProps {
   initialState?: { repoId?: string };
@@ -152,6 +340,17 @@ export function ReposSettingsSection({
     selectedRepoId || null,
     { enabled: !!selectedRepoId }
   );
+
+  const {
+    data: repoWorktrees = [],
+    isLoading: worktreesLoading,
+    isFetching: worktreesFetching,
+    error: worktreesError,
+  } = useQuery({
+    queryKey: ['repo-worktrees', selectedRepoId],
+    queryFn: () => repoApi.listWorktrees(selectedRepoId),
+    enabled: !!selectedRepoId,
+  });
 
   // Add "Use current branch" option at the top of branches list
   const branchItems = useMemo(() => {
@@ -238,6 +437,345 @@ export function ReposSettingsSection({
   );
 
   const [removing, setRemoving] = useState(false);
+  const [removingWorktrees, setRemovingWorktrees] = useState(false);
+  const [worktreeError, setWorktreeError] = useState<string | null>(null);
+  const [worktreeFailedPaths, setWorktreeFailedPaths] = useState<string[]>([]);
+  const [worktreeSearch, setWorktreeSearch] = useState('');
+  const [worktreeStatusFilter, setWorktreeStatusFilter] = useState<
+    'all' | RepoWorktreeStatus
+  >('all');
+  const [worktreeSortBy, setWorktreeSortBy] = useState<
+    'activity' | 'status' | 'branch' | 'path'
+  >('activity');
+  const [selectedWorktreePaths, setSelectedWorktreePaths] = useState<string[]>(
+    []
+  );
+  const [bobScope, setBobScope] = useState<BobShellScope>('project');
+  const [bobShellDraftFiles, setBobShellDraftFiles] = useState<
+    SaveBobShellConfigFile[]
+  >([]);
+  const [bobShellSaving, setBobShellSaving] = useState(false);
+  const [bobShellError, setBobShellError] = useState<string | null>(null);
+  const [bobShellSuccess, setBobShellSuccess] = useState<string | null>(null);
+  const [newBobRuleFilePath, setNewBobRuleFilePath] = useState('');
+
+  const selectedWorktreePathSet = useMemo(
+    () => new Set(selectedWorktreePaths),
+    [selectedWorktreePaths]
+  );
+
+  const {
+    data: bobShellConfig,
+    isLoading: bobShellLoading,
+    isFetching: bobShellFetching,
+    error: bobShellQueryError,
+  } = useQuery({
+    queryKey: ['repo-bob-shell', selectedRepoId, bobScope],
+    queryFn: () => repoApi.getBobShellConfig(selectedRepoId, bobScope),
+    enabled: !!selectedRepoId,
+  });
+
+  useEffect(() => {
+    setSelectedWorktreePaths([]);
+    setWorktreeError(null);
+    setWorktreeFailedPaths([]);
+    setWorktreeSearch('');
+    setWorktreeStatusFilter('all');
+    setWorktreeSortBy('activity');
+    setBobScope('project');
+    setBobShellDraftFiles([]);
+    setBobShellError(null);
+    setBobShellSuccess(null);
+    setNewBobRuleFilePath('');
+  }, [selectedRepoId]);
+
+  useEffect(() => {
+    if (!bobShellConfig) return;
+    const nextFiles = bobShellConfig.files.map((file) => ({
+      path: file.path,
+      content: file.content ?? '',
+      delete: false,
+    }));
+    setBobShellDraftFiles(nextFiles);
+    setBobShellError(null);
+  }, [bobShellConfig]);
+
+  useEffect(() => {
+    if (!repoWorktrees.length) {
+      setSelectedWorktreePaths([]);
+      return;
+    }
+
+    const availablePaths = new Set(
+      repoWorktrees.map((worktree) => worktree.path)
+    );
+    setSelectedWorktreePaths((previous) =>
+      previous.filter((path) => availablePaths.has(path))
+    );
+  }, [repoWorktrees]);
+
+  const visibleWorktrees = useMemo(() => {
+    const query = worktreeSearch.trim().toLowerCase();
+    const rows = repoWorktrees.filter((worktree) => {
+      if (
+        worktreeStatusFilter !== 'all' &&
+        worktree.status !== worktreeStatusFilter
+      ) {
+        return false;
+      }
+
+      if (!query) return true;
+      const branch = worktree.branch?.toLowerCase() ?? '';
+      return (
+        branch.includes(query) || worktree.path.toLowerCase().includes(query)
+      );
+    });
+
+    rows.sort((left, right) => {
+      switch (worktreeSortBy) {
+        case 'status':
+          return (
+            WORKTREE_STATUS_PRIORITY[left.status] -
+            WORKTREE_STATUS_PRIORITY[right.status]
+          );
+        case 'branch':
+          return (left.branch ?? '').localeCompare(right.branch ?? '');
+        case 'path':
+          return left.path.localeCompare(right.path);
+        case 'activity':
+        default: {
+          const leftTs = left.last_activity
+            ? new Date(left.last_activity).getTime()
+            : 0;
+          const rightTs = right.last_activity
+            ? new Date(right.last_activity).getTime()
+            : 0;
+          return rightTs - leftTs;
+        }
+      }
+    });
+
+    return rows;
+  }, [repoWorktrees, worktreeSearch, worktreeSortBy, worktreeStatusFilter]);
+
+  const selectableVisiblePaths = useMemo(
+    () =>
+      visibleWorktrees
+        .filter((worktree) => !worktree.is_primary)
+        .map((worktree) => worktree.path),
+    [visibleWorktrees]
+  );
+
+  const allVisibleSelected =
+    selectableVisiblePaths.length > 0 &&
+    selectableVisiblePaths.every((path) => selectedWorktreePathSet.has(path));
+
+  const toggleSelectVisibleWorktrees = useCallback(
+    (checked: boolean) => {
+      if (checked) {
+        setSelectedWorktreePaths((previous) =>
+          Array.from(new Set([...previous, ...selectableVisiblePaths]))
+        );
+        return;
+      }
+      const visibleSet = new Set(selectableVisiblePaths);
+      setSelectedWorktreePaths((previous) =>
+        previous.filter((path) => !visibleSet.has(path))
+      );
+    },
+    [selectableVisiblePaths]
+  );
+
+  const toggleSingleWorktreeSelection = useCallback((path: string) => {
+    setSelectedWorktreePaths((previous) => {
+      if (previous.includes(path)) {
+        return previous.filter((value) => value !== path);
+      }
+      return [...previous, path];
+    });
+  }, []);
+
+  const removeWorktreePaths = useCallback(
+    async (
+      paths: string[],
+      options?: {
+        force?: boolean;
+        skipConfirmation?: boolean;
+      }
+    ) => {
+      if (!selectedRepo || paths.length === 0) return;
+
+      const uniquePaths = Array.from(
+        new Set(paths.map((path) => path.trim()).filter(Boolean))
+      );
+      if (uniquePaths.length === 0) return;
+
+      const worktreesByPath = new Map(
+        repoWorktrees.map((worktree) => [worktree.path, worktree])
+      );
+      const selectedRows = uniquePaths
+        .map((path) => worktreesByPath.get(path))
+        .filter((row): row is RepoWorktreeInfo => Boolean(row));
+      const requiresForce = selectedRows.some(
+        (row) => row.status === 'dirty' || row.status === 'locked'
+      );
+
+      let force = options?.force ?? requiresForce;
+      if (!options?.skipConfirmation) {
+        const result = await RemoveWorktreesDialog.show({
+          worktrees: selectedRows,
+          requireForce: requiresForce,
+        });
+        if (!result || result.action !== 'confirm') return;
+        force = result.force || requiresForce;
+      }
+
+      setRemovingWorktrees(true);
+      setWorktreeError(null);
+
+      try {
+        const response = await repoApi.removeWorktrees(selectedRepo.id, {
+          paths: uniquePaths,
+          force,
+        });
+        await queryClient.invalidateQueries({
+          queryKey: ['repo-worktrees', selectedRepo.id],
+        });
+
+        if (response.removed_paths.length > 0) {
+          setSelectedWorktreePaths((previous) =>
+            previous.filter((path) => !response.removed_paths.includes(path))
+          );
+        }
+
+        const failedPaths = response.failures.map((failure) => failure.path);
+        setWorktreeFailedPaths(failedPaths);
+
+        const messageParts: string[] = [];
+        if (response.failures.length > 0) {
+          messageParts.push(
+            `Failed to remove ${response.failures.length} worktree(s).`
+          );
+        }
+        if (response.prune_error) {
+          messageParts.push(`Prune failed: ${response.prune_error}`);
+        }
+        setWorktreeError(
+          messageParts.length > 0 ? messageParts.join(' ') : null
+        );
+      } catch (err) {
+        setWorktreeError(err instanceof Error ? err.message : 'Removal failed');
+      } finally {
+        setRemovingWorktrees(false);
+      }
+    },
+    [queryClient, repoWorktrees, selectedRepo]
+  );
+
+  const handleRetryFailedWorktrees = useCallback(async () => {
+    if (worktreeFailedPaths.length === 0) return;
+    await removeWorktreePaths(worktreeFailedPaths, {
+      force: true,
+      skipConfirmation: true,
+    });
+  }, [removeWorktreePaths, worktreeFailedPaths]);
+
+  const sortedBobShellDraftFiles = useMemo(() => {
+    return [...bobShellDraftFiles].sort((left, right) =>
+      left.path.localeCompare(right.path)
+    );
+  }, [bobShellDraftFiles]);
+
+  const updateBobShellFile = useCallback((path: string, content: string) => {
+    setBobShellDraftFiles((previous) =>
+      previous.map((file) => (file.path === path ? { ...file, content } : file))
+    );
+    setBobShellSuccess(null);
+  }, []);
+
+  const toggleDeleteBobShellFile = useCallback(
+    (path: string, checked: boolean) => {
+      setBobShellDraftFiles((previous) =>
+        previous.map((file) =>
+          file.path === path ? { ...file, delete: checked } : file
+        )
+      );
+      setBobShellSuccess(null);
+    },
+    []
+  );
+
+  const applyTemplateToBobFile = useCallback((path: string) => {
+    let template = '';
+    if (path.endsWith('.bob/settings.json')) {
+      template = BOB_SETTINGS_TEMPLATE;
+    } else if (path.endsWith('custom_modes.yaml')) {
+      template = BOB_CUSTOM_MODES_TEMPLATE;
+    } else if (path.endsWith('.bobignore')) {
+      template = BOBIGNORE_TEMPLATE;
+    }
+
+    if (!template) return;
+    setBobShellDraftFiles((previous) =>
+      previous.map((file) =>
+        file.path === path
+          ? { ...file, content: template, delete: false }
+          : file
+      )
+    );
+    setBobShellSuccess(null);
+  }, []);
+
+  const addBobRuleFile = useCallback(() => {
+    const sanitized = newBobRuleFilePath.trim();
+    if (!sanitized) return;
+
+    if (bobShellDraftFiles.some((file) => file.path === sanitized)) {
+      return;
+    }
+
+    setBobShellDraftFiles((previous) => [
+      ...previous,
+      { path: sanitized, content: '', delete: false },
+    ]);
+    setNewBobRuleFilePath('');
+    setBobShellSuccess(null);
+  }, [bobShellDraftFiles, newBobRuleFilePath]);
+
+  const saveBobShellConfig = useCallback(async () => {
+    if (!selectedRepo) return;
+
+    setBobShellSaving(true);
+    setBobShellError(null);
+    setBobShellSuccess(null);
+
+    try {
+      const response = await repoApi.saveBobShellConfig(selectedRepo.id, {
+        scope: bobScope,
+        files: bobShellDraftFiles,
+      });
+
+      await queryClient.invalidateQueries({
+        queryKey: ['repo-bob-shell', selectedRepo.id, bobScope],
+      });
+
+      if (response.failures.length > 0) {
+        setBobShellError(
+          `Some files failed: ${response.failures.map((f) => `${f.path}: ${f.message}`).join(' | ')}`
+        );
+      } else {
+        setBobShellSuccess(
+          `Saved ${response.saved_paths.length} file(s), deleted ${response.deleted_paths.length}.`
+        );
+      }
+    } catch (err) {
+      setBobShellError(
+        err instanceof Error ? err.message : 'Failed to save Bob Shell config'
+      );
+    } finally {
+      setBobShellSaving(false);
+    }
+  }, [bobScope, bobShellDraftFiles, queryClient, selectedRepo]);
 
   const handleRemoveRepo = useCallback(async () => {
     if (!selectedRepo) return;
@@ -559,6 +1097,361 @@ export function ReposSettingsSection({
                   {t('settings.repos.remove.button')}
                 </Button>
               </div>
+            </div>
+          </SettingsCard>
+
+          <SettingsCard
+            title={t('settings.repos.worktrees.title', {
+              defaultValue: 'Worktree Management',
+            })}
+            description={t('settings.repos.worktrees.description', {
+              defaultValue:
+                'List and remove git worktrees for this repository.',
+            })}
+            headerAction={
+              <Button
+                variant="outline"
+                onClick={() =>
+                  queryClient.invalidateQueries({
+                    queryKey: ['repo-worktrees', selectedRepo.id],
+                  })
+                }
+                disabled={worktreesFetching || removingWorktrees}
+              >
+                <RefreshCw
+                  className={`mr-2 h-4 w-4 ${worktreesFetching ? 'animate-spin' : ''}`}
+                />
+                Refresh
+              </Button>
+            }
+          >
+            {worktreeError && (
+              <div className="bg-error/10 border border-error/50 rounded-sm p-3 text-error text-sm space-y-2">
+                <p>{worktreeError}</p>
+                {worktreeFailedPaths.length > 0 && (
+                  <Button
+                    variant="outline"
+                    onClick={handleRetryFailedWorktrees}
+                    disabled={removingWorktrees}
+                  >
+                    Retry Failed
+                  </Button>
+                )}
+              </div>
+            )}
+
+            <div className="grid gap-2 md:grid-cols-3">
+              <input
+                value={worktreeSearch}
+                onChange={(event) => setWorktreeSearch(event.target.value)}
+                placeholder="Search by branch or path"
+                className="w-full bg-secondary border border-foreground/20 rounded-sm px-base py-half text-sm text-high placeholder:text-low placeholder:opacity-80 focus:outline-none focus:ring-1 focus:ring-brand"
+              />
+              <select
+                value={worktreeStatusFilter}
+                onChange={(event) =>
+                  setWorktreeStatusFilter(
+                    event.target.value as 'all' | RepoWorktreeStatus
+                  )
+                }
+                className="w-full bg-secondary border border-foreground/20 rounded-sm px-base py-half text-sm text-high focus:outline-none focus:ring-1 focus:ring-brand"
+              >
+                <option value="all">All statuses</option>
+                <option value="clean">Clean</option>
+                <option value="dirty">Dirty</option>
+                <option value="locked">Locked</option>
+              </select>
+              <select
+                value={worktreeSortBy}
+                onChange={(event) =>
+                  setWorktreeSortBy(
+                    event.target.value as
+                      | 'activity'
+                      | 'status'
+                      | 'branch'
+                      | 'path'
+                  )
+                }
+                className="w-full bg-secondary border border-foreground/20 rounded-sm px-base py-half text-sm text-high focus:outline-none focus:ring-1 focus:ring-brand"
+              >
+                <option value="activity">Sort by activity</option>
+                <option value="status">Sort by status</option>
+                <option value="branch">Sort by branch</option>
+                <option value="path">Sort by path</option>
+              </select>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-sm text-low">
+                Showing {visibleWorktrees.length} of {repoWorktrees.length}
+              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="inline-flex items-center gap-2 text-sm text-normal">
+                  <input
+                    type="checkbox"
+                    checked={allVisibleSelected}
+                    onChange={(event) =>
+                      toggleSelectVisibleWorktrees(event.target.checked)
+                    }
+                    disabled={
+                      selectableVisiblePaths.length === 0 || removingWorktrees
+                    }
+                    className="h-4 w-4 rounded border-border bg-secondary text-brand focus:ring-brand focus:ring-offset-0"
+                  />
+                  Select visible
+                </label>
+                <Button
+                  variant="destructive"
+                  onClick={() =>
+                    removeWorktreePaths(selectedWorktreePaths, {
+                      skipConfirmation: false,
+                    })
+                  }
+                  disabled={
+                    selectedWorktreePaths.length === 0 || removingWorktrees
+                  }
+                >
+                  {removingWorktrees && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete Selected ({selectedWorktreePaths.length})
+                </Button>
+              </div>
+            </div>
+
+            {worktreesLoading ? (
+              <div className="flex items-center gap-2 py-half">
+                <SpinnerIcon
+                  className="size-icon-xs animate-spin text-low"
+                  weight="bold"
+                />
+                <span className="text-sm text-low">Loading worktrees…</span>
+              </div>
+            ) : worktreesError ? (
+              <div className="bg-error/10 border border-error/50 rounded-sm p-3 text-error text-sm">
+                {worktreesError instanceof Error
+                  ? worktreesError.message
+                  : 'Failed to load worktrees'}
+              </div>
+            ) : visibleWorktrees.length === 0 ? (
+              <p className="text-sm text-low">No worktrees found.</p>
+            ) : (
+              <div className="rounded-sm border border-border divide-y divide-border">
+                {visibleWorktrees.map((worktree) => (
+                  <div
+                    key={worktree.path}
+                    className="flex flex-col gap-2 p-3 md:flex-row md:items-center md:justify-between"
+                  >
+                    <div className="flex items-start gap-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedWorktreePathSet.has(worktree.path)}
+                        onChange={() =>
+                          toggleSingleWorktreeSelection(worktree.path)
+                        }
+                        disabled={worktree.is_primary || removingWorktrees}
+                        className="mt-0.5 h-4 w-4 rounded border-border bg-secondary text-brand focus:ring-brand focus:ring-offset-0 disabled:opacity-40"
+                      />
+                      <div className="space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-sm font-medium text-normal">
+                            {worktree.branch ?? 'detached'}
+                          </span>
+                          <span
+                            className={`inline-flex items-center rounded-sm border px-2 py-0.5 text-xs font-medium ${getWorktreeStatusBadgeClass(worktree.status)}`}
+                          >
+                            {worktree.status}
+                          </span>
+                          {worktree.is_primary && (
+                            <span className="inline-flex items-center rounded-sm border border-brand/40 bg-brand/10 px-2 py-0.5 text-xs font-medium text-brand">
+                              Primary / active
+                            </span>
+                          )}
+                        </div>
+                        <p className="font-mono text-xs text-low break-all">
+                          {worktree.path}
+                        </p>
+                        <p className="text-xs text-low">
+                          Last activity:{' '}
+                          {formatWorktreeActivity(worktree.last_activity)}
+                        </p>
+                      </div>
+                    </div>
+
+                    {!worktree.is_primary && (
+                      <Button
+                        variant="destructive"
+                        onClick={() => removeWorktreePaths([worktree.path])}
+                        disabled={removingWorktrees}
+                      >
+                        Remove
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </SettingsCard>
+
+          <SettingsCard
+            title="Bob Shell Setup"
+            description="Configure Bob shell project/global files from one place: settings, custom modes, rules, and .bobignore."
+            headerAction={
+              <Button
+                variant="outline"
+                onClick={() =>
+                  queryClient.invalidateQueries({
+                    queryKey: ['repo-bob-shell', selectedRepo.id, bobScope],
+                  })
+                }
+                disabled={bobShellFetching || bobShellSaving}
+              >
+                <RefreshCw
+                  className={`mr-2 h-4 w-4 ${bobShellFetching ? 'animate-spin' : ''}`}
+                />
+                Refresh
+              </Button>
+            }
+          >
+            <div className="grid gap-2 md:grid-cols-3">
+              <select
+                value={bobScope}
+                onChange={(event) =>
+                  setBobScope(event.target.value as BobShellScope)
+                }
+                className="w-full bg-secondary border border-foreground/20 rounded-sm px-base py-half text-sm text-high focus:outline-none focus:ring-1 focus:ring-brand"
+              >
+                <option value="project">Project Scope</option>
+                <option value="global">Global Scope (~/.bob)</option>
+              </select>
+              <input
+                value={newBobRuleFilePath}
+                onChange={(event) => setNewBobRuleFilePath(event.target.value)}
+                placeholder={
+                  bobScope === 'project'
+                    ? '.bob/rules/custom.md'
+                    : 'rules/custom.md'
+                }
+                className="w-full bg-secondary border border-foreground/20 rounded-sm px-base py-half text-sm text-high placeholder:text-low placeholder:opacity-80 focus:outline-none focus:ring-1 focus:ring-brand"
+              />
+              <Button variant="outline" onClick={addBobRuleFile}>
+                Add Rule File
+              </Button>
+            </div>
+
+            <div className="rounded-sm border border-brand/30 bg-brand/5 p-3 text-sm text-low">
+              Precedence reminder: CLI args override project/user/system files.
+              Use project scope for repo-local behavior (`.bob/*`, `.bobrules*`,
+              `.bobignore`).
+            </div>
+
+            {bobShellError && (
+              <div className="bg-error/10 border border-error/50 rounded-sm p-3 text-error text-sm">
+                {bobShellError}
+              </div>
+            )}
+            {bobShellSuccess && (
+              <div className="bg-success/10 border border-success/50 rounded-sm p-3 text-success text-sm">
+                {bobShellSuccess}
+              </div>
+            )}
+            {bobShellQueryError && (
+              <div className="bg-error/10 border border-error/50 rounded-sm p-3 text-error text-sm">
+                {bobShellQueryError instanceof Error
+                  ? bobShellQueryError.message
+                  : 'Failed to load Bob shell config'}
+              </div>
+            )}
+
+            {bobShellLoading ? (
+              <div className="flex items-center gap-2 py-half">
+                <SpinnerIcon
+                  className="size-icon-xs animate-spin text-low"
+                  weight="bold"
+                />
+                <span className="text-sm text-low">
+                  Loading Bob shell configuration…
+                </span>
+              </div>
+            ) : sortedBobShellDraftFiles.length === 0 ? (
+              <p className="text-sm text-low">No Bob shell files discovered.</p>
+            ) : (
+              <div className="space-y-3">
+                {sortedBobShellDraftFiles.map((file) => (
+                  <div
+                    key={file.path}
+                    className="rounded-sm border border-border bg-secondary/20 p-3 space-y-2"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <p className="text-sm font-medium text-normal font-mono">
+                          {file.path}
+                        </p>
+                        <p className="text-xs text-low">
+                          {bobShellConfig?.files.find(
+                            (f) => f.path === file.path
+                          )?.exists
+                            ? 'Existing file'
+                            : 'New file'}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {(file.path.endsWith('.bob/settings.json') ||
+                          file.path.endsWith('custom_modes.yaml') ||
+                          file.path.endsWith('.bobignore')) && (
+                          <Button
+                            variant="outline"
+                            onClick={() => applyTemplateToBobFile(file.path)}
+                          >
+                            Use Template
+                          </Button>
+                        )}
+                        <label className="inline-flex items-center gap-2 text-sm text-low">
+                          <input
+                            type="checkbox"
+                            checked={!!file.delete}
+                            onChange={(event) =>
+                              toggleDeleteBobShellFile(
+                                file.path,
+                                event.target.checked
+                              )
+                            }
+                            className="h-4 w-4 rounded border-border bg-secondary text-brand focus:ring-brand focus:ring-offset-0"
+                          />
+                          Delete
+                        </label>
+                      </div>
+                    </div>
+
+                    <textarea
+                      value={file.content}
+                      onChange={(event) =>
+                        updateBobShellFile(file.path, event.target.value)
+                      }
+                      disabled={!!file.delete}
+                      rows={Math.max(
+                        6,
+                        Math.min(16, file.content.split('\n').length + 2)
+                      )}
+                      className="w-full bg-panel border border-border rounded-sm px-base py-half text-sm text-high font-mono placeholder:text-low placeholder:opacity-80 focus:outline-none focus:ring-1 focus:ring-brand disabled:opacity-50"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="flex justify-end">
+              <Button
+                variant="default"
+                onClick={saveBobShellConfig}
+                disabled={bobShellSaving || bobShellLoading}
+              >
+                {bobShellSaving && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                Save Bob Shell Files
+              </Button>
             </div>
           </SettingsCard>
 

@@ -63,6 +63,7 @@ export function ChatFileEntry({
   const hasStats = additions !== undefined || deletions !== undefined;
   const FileIcon = fileIcon ?? DefaultFileIcon;
   const isDenied = status?.status === 'denied';
+  const isSuccess = status?.status === 'success';
   const hasDiffContent = Boolean(diffContent && renderDiffBody);
 
   const handleClick = () => {
@@ -76,23 +77,26 @@ export function ChatFileEntry({
   // If we have diff content, wrap in a container with the diff body
   if (hasDiffContent) {
     return (
+    <div
+      className={cn(
+        'motion-safe:animate-chat-entry-in',
+        'rounded-sm border overflow-hidden',
+        isDenied && 'border-error bg-error/10',
+        isSuccess && 'border-success/50 bg-success/5',
+        className
+      )}
+    >
+      {/* Header */}
       <div
         className={cn(
-          'motion-safe:animate-chat-entry-in',
-          'rounded-sm border overflow-hidden',
-          isDenied && 'border-error bg-error/10',
-          className
+          'flex items-center p-base w-full',
+          isDenied && 'bg-error/20',
+          isSuccess && 'bg-success/10',
+          !isDenied && !isSuccess && 'bg-panel',
+          (onToggle || isVSCode) && 'cursor-pointer'
         )}
+        onClick={handleClick}
       >
-        {/* Header */}
-        <div
-          className={cn(
-            'flex items-center p-base w-full',
-            isDenied ? 'bg-error/20' : 'bg-panel',
-            (onToggle || isVSCode) && 'cursor-pointer'
-          )}
-          onClick={handleClick}
-        >
           <div className="flex-1 flex items-center gap-base min-w-0">
             <span className="relative shrink-0">
               <FileIcon className="size-icon-base" />
@@ -151,7 +155,9 @@ export function ChatFileEntry({
       className={cn(
         'motion-safe:animate-chat-entry-in',
         'flex items-center border rounded-sm p-base w-full',
-        isDenied ? 'bg-error/20 border-error' : 'bg-panel',
+        isDenied && 'bg-error/20 border-error',
+        isSuccess && 'bg-success/10 border-success/50',
+        !isDenied && !isSuccess && 'bg-panel',
         (onToggle || isVSCode) && 'cursor-pointer',
         className
       )}

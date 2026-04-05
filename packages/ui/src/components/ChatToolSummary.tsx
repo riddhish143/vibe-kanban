@@ -66,12 +66,21 @@ export const ChatToolSummary = forwardRef<
   };
   const Icon = getIcon();
 
+  const isSuccess = status?.status === 'success';
+  const isError =
+    status?.status === 'failed' ||
+    status?.status === 'denied' ||
+    status?.status === 'timed_out';
+
   return (
     <div
       className={cn(
         'motion-safe:animate-chat-slide-in',
         'flex items-center gap-base text-sm text-low',
-        'border border-border/40 rounded-sm px-double py-base',
+        'border rounded-sm px-double py-base',
+        isSuccess && 'border-success/50 bg-success/5',
+        isError && 'border-error/50 bg-error/5',
+        !isSuccess && !isError && 'border-border/40',
         isClickable && 'cursor-pointer',
         className
       )}

@@ -23,6 +23,34 @@
         "null"
       ]
     },
+    "sandbox_type": {
+      "description": "Sandbox backend/type. Examples: docker, podman, sandbox-exec. Sets BOB_SHELL_SANDBOX.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "seatbelt_profile": {
+      "description": "macOS Seatbelt profile. Sets SEATBELT_PROFILE.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "sandbox_flags": {
+      "description": "Extra container sandbox flags. Sets SANDBOX_FLAGS.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "sandbox_set_uid_gid": {
+      "description": "Override Linux UID/GID mapping behavior for container sandboxing. Sets SANDBOX_SET_UID_GID.",
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
     "trust": {
       "description": "Trust the current Bob workspace.",
       "type": [
@@ -99,6 +127,13 @@
       "description": "Bob chat mode slug. Supports built-in modes (advanced, code, ask, plan) and custom mode slugs.",
       "type": [
         "string",
+        "null"
+      ]
+    },
+    "hide_intermediary_output": {
+      "description": "Hide intermediary output and show only final completion output.",
+      "type": [
+        "boolean",
         "null"
       ]
     },

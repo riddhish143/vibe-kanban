@@ -19,6 +19,7 @@ export function ChatSystemMessage({
       className={cn(
         'motion-safe:animate-chat-fade-in',
         'flex items-start gap-base text-sm text-low cursor-pointer',
+        'border border-border/40 rounded-sm px-double py-base',
         className
       )}
       onClick={onToggle}

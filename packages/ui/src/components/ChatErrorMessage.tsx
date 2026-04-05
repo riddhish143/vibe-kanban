@@ -19,6 +19,7 @@ export function ChatErrorMessage({
       className={cn(
         'motion-safe:animate-chat-entry-in',
         'flex items-start gap-base text-sm text-error cursor-pointer',
+        'border border-error/50 bg-error/5 rounded-sm px-double py-base',
         className
       )}
       onClick={onToggle}

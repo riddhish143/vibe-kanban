@@ -2,7 +2,7 @@ use db::models::requests::{
     CreateAndStartWorkspaceRequest, CreateAndStartWorkspaceResponse, LinkedIssueInfo,
     WorkspaceRepoInput,
 };
-use executors::profile::ExecutorConfig;
+use executors::{model_selector::PermissionPolicy, profile::ExecutorConfig};
 use rmcp::{
     ErrorData, handler::server::tool::Parameters, model::CallToolResult, schemars, tool,
     tool_router,
@@ -34,6 +34,16 @@ struct StartWorkspaceRequest {
     executor: String,
     #[schemars(description = "Optional executor variant, if needed")]
     variant: Option<String>,
+    #[schemars(description = "Optional model override for the selected executor")]
+    model_id: Option<String>,
+    #[schemars(description = "Optional agent/mode override for the selected executor")]
+    agent_id: Option<String>,
+    #[schemars(description = "Optional reasoning override for the selected executor")]
+    reasoning_id: Option<String>,
+    #[schemars(
+        description = "Optional permission policy override. Supported values: AUTO, SUPERVISED, PLAN (case-insensitive)."
+    )]
+    permission_policy: Option<String>,
     #[schemars(description = "Repository selection for the workspace")]
     repositories: Vec<McpWorkspaceRepoInput>,
     #[schemars(
@@ -89,6 +99,26 @@ fn build_workspace_prompt_from_issue(issue: &api_types::Issue) -> Option<String>
     Some(format!("{title}\n\n{description}"))
 }
 
+fn parse_permission_policy(value: Option<String>) -> Result<Option<PermissionPolicy>, String> {
+    let Some(raw) = value else {
+        return Ok(None);
+    };
+
+    let normalized = raw.trim().to_ascii_uppercase();
+    if normalized.is_empty() {
+        return Ok(None);
+    }
+
+    match normalized.as_str() {
+        "AUTO" => Ok(Some(PermissionPolicy::Auto)),
+        "SUPERVISED" => Ok(Some(PermissionPolicy::Supervised)),
+        "PLAN" => Ok(Some(PermissionPolicy::Plan)),
+        _ => Err(format!(
+            "Unknown permission_policy '{raw}'. Expected AUTO, SUPERVISED, or PLAN."
+        )),
+    }
+}
+
 #[tool_router(router = task_attempts_tools_router, vis = "pub")]
 impl McpServer {
     #[tool(description = "Create a new workspace and start its first session.")]
@@ -99,6 +129,10 @@ impl McpServer {
             prompt,
             executor,
             variant,
+            model_id,
+            agent_id,
+            reasoning_id,
+            permission_policy,
             repositories,
             issue_id,
         }): Parameters<StartWorkspaceRequest>,
@@ -139,6 +173,40 @@ impl McpServer {
                 Some(trimmed.to_string())
             }
         });
+
+        let model_id = model_id.and_then(|value| {
+            let trimmed = value.trim();
+            if trimmed.is_empty() {
+                None
+            } else {
+                Some(trimmed.to_string())
+            }
+        });
+
+        let agent_id = agent_id.and_then(|value| {
+            let trimmed = value.trim();
+            if trimmed.is_empty() {
+                None
+            } else {
+                Some(trimmed.to_string())
+            }
+        });
+
+        let reasoning_id = reasoning_id.and_then(|value| {
+            let trimmed = value.trim();
+            if trimmed.is_empty() {
+                None
+            } else {
+                Some(trimmed.to_string())
+            }
+        });
+
+        let permission_policy = match parse_permission_policy(permission_policy) {
+            Ok(policy) => policy,
+            Err(error) => {
+                return Self::err(error, None::<String>);
+            }
+        };
 
         let workspace_repos: Vec<WorkspaceRepoInput> = repositories
             .into_iter()
@@ -183,10 +251,10 @@ impl McpServer {
             executor_config: ExecutorConfig {
                 executor: base_executor,
                 variant,
-                model_id: None,
-                agent_id: None,
-                reasoning_id: None,
-                permission_policy: None,
+                model_id,
+                agent_id,
+                reasoning_id,
+                permission_policy,
             },
             prompt: workspace_prompt,
             attachment_ids: None,
@@ -240,5 +308,43 @@ impl McpServer {
             workspace_id: workspace_id.to_string(),
             issue_id: issue_id.to_string(),
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use executors::model_selector::PermissionPolicy;
+
+    use super::parse_permission_policy;
+
+    #[test]
+    fn parse_permission_policy_accepts_known_values_case_insensitively() {
+        assert_eq!(
+            parse_permission_policy(Some("auto".to_string())).unwrap(),
+            Some(PermissionPolicy::Auto)
+        );
+        assert_eq!(
+            parse_permission_policy(Some("SUPERVISED".to_string())).unwrap(),
+            Some(PermissionPolicy::Supervised)
+        );
+        assert_eq!(
+            parse_permission_policy(Some(" Plan ".to_string())).unwrap(),
+            Some(PermissionPolicy::Plan)
+        );
+    }
+
+    #[test]
+    fn parse_permission_policy_treats_missing_or_empty_as_none() {
+        assert_eq!(parse_permission_policy(None).unwrap(), None);
+        assert_eq!(
+            parse_permission_policy(Some("   ".to_string())).unwrap(),
+            None
+        );
+    }
+
+    #[test]
+    fn parse_permission_policy_rejects_unknown_value() {
+        let err = parse_permission_policy(Some("strict".to_string())).unwrap_err();
+        assert!(err.contains("Unknown permission_policy 'strict'"));
     }
 }

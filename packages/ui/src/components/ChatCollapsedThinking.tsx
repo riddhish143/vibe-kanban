@@ -45,7 +45,14 @@ export function ChatCollapsedThinking({
   if (entries.length === 0) return null;
 
   return (
-    <div className={cn('motion-safe:animate-chat-fade-in', 'flex flex-col', className)}>
+    <div
+      className={cn(
+        'motion-safe:animate-chat-fade-in',
+        'flex flex-col',
+        'border border-success/50 bg-success/5 rounded-sm px-double py-base',
+        className
+      )}
+    >
       {/* Header row - clickable to expand/collapse */}
       <div
         className="flex items-center gap-base text-sm text-low cursor-pointer group"

@@ -70,6 +70,7 @@ pub struct StatusDiffEntry {
 pub struct WorktreeEntry {
     pub path: String,
     pub branch: Option<String>,
+    pub is_locked: bool,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -298,12 +299,17 @@ impl GitCli {
 
     pub fn list_worktrees(&self, repo_path: &Path) -> Result<Vec<WorktreeEntry>, GitCliError> {
         let out = self.git(repo_path, ["worktree", "list", "--porcelain"])?;
+        Ok(Self::parse_worktree_list(&out))
+    }
+
+    fn parse_worktree_list(output: &str) -> Vec<WorktreeEntry> {
         let mut entries = Vec::new();
         let mut current_path: Option<String> = None;
         let mut current_head: Option<String> = None;
         let mut current_branch: Option<String> = None;
+        let mut current_locked = false;
 
-        for line in out.lines() {
+        for line in output.lines() {
             let line = line.trim();
 
             if line.is_empty() {
@@ -312,8 +318,10 @@ impl GitCli {
                     entries.push(WorktreeEntry {
                         path,
                         branch: current_branch.take(),
+                        is_locked: current_locked,
                     });
                 }
+                current_locked = false;
             } else if let Some(path) = line.strip_prefix("worktree ") {
                 current_path = Some(path.to_string());
             } else if let Some(head) = line.strip_prefix("HEAD ") {
@@ -323,6 +331,8 @@ impl GitCli {
                 current_branch = branch_ref
                     .strip_prefix("refs/heads/")
                     .map(|name| name.to_string());
+            } else if line.starts_with("locked") {
+                current_locked = true;
             }
         }
 
@@ -331,10 +341,11 @@ impl GitCli {
             entries.push(WorktreeEntry {
                 path,
                 branch: current_branch,
+                is_locked: current_locked,
             });
         }
 
-        Ok(entries)
+        entries
     }
 
     /// Commit staged changes with the given message.
@@ -706,6 +717,34 @@ impl GitCli {
             }
         }
         Ok(files)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::GitCli;
+
+    #[test]
+    fn parse_worktree_list_captures_locked_entries() {
+        let output = "\
+worktree /tmp/repo
+HEAD 1111111111111111111111111111111111111111
+branch refs/heads/main
+
+worktree /tmp/repo-feature
+HEAD 2222222222222222222222222222222222222222
+branch refs/heads/feature/worktree
+locked by test
+";
+
+        let entries = GitCli::parse_worktree_list(output);
+        assert_eq!(entries.len(), 2);
+        assert_eq!(entries[0].path, "/tmp/repo");
+        assert_eq!(entries[0].branch.as_deref(), Some("main"));
+        assert!(!entries[0].is_locked);
+        assert_eq!(entries[1].path, "/tmp/repo-feature");
+        assert_eq!(entries[1].branch.as_deref(), Some("feature/worktree"));
+        assert!(entries[1].is_locked);
     }
 }
 

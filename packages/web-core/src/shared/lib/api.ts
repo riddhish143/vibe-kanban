@@ -826,6 +826,57 @@ export const fileSystemApi = {
 };
 
 // Repo APIs
+export type RepoWorktreeStatus = 'clean' | 'dirty' | 'locked';
+
+export interface RepoWorktreeInfo {
+  path: string;
+  branch: string | null;
+  status: RepoWorktreeStatus;
+  is_primary: boolean;
+  last_activity: string | null;
+}
+
+export interface WorktreeRemovalFailure {
+  path: string;
+  message: string;
+}
+
+export interface RemoveRepoWorktreesResponse {
+  removed_paths: string[];
+  failures: WorktreeRemovalFailure[];
+  prune_error: string | null;
+}
+
+export type BobShellScope = 'project' | 'global';
+
+export interface BobShellConfigFile {
+  path: string;
+  content: string;
+  exists: boolean;
+}
+
+export interface BobShellConfigResponse {
+  scope: BobShellScope;
+  files: BobShellConfigFile[];
+}
+
+export interface SaveBobShellConfigFile {
+  path: string;
+  content: string;
+  delete?: boolean;
+}
+
+export interface BobShellSaveFailure {
+  path: string;
+  message: string;
+}
+
+export interface SaveBobShellConfigResponse {
+  saved_paths: string[];
+  deleted_paths: string[];
+  failures: BobShellSaveFailure[];
+}
+
 export const repoApi = {
   list: async (): Promise<Repo[]> => {
     const response = await makeRequest('/api/repos');
@@ -931,6 +982,52 @@ export const repoApi = {
   listRemotes: async (repoId: string): Promise<GitRemote[]> => {
     const response = await makeRequest(`/api/repos/${repoId}/remotes`);
     return handleApiResponse<GitRemote[]>(response);
+  },
+
+  listWorktrees: async (repoId: string): Promise<RepoWorktreeInfo[]> => {
+    const response = await makeRequest(`/api/repos/${repoId}/worktrees`);
+    return handleApiResponse<RepoWorktreeInfo[]>(response);
+  },
+
+  removeWorktrees: async (
+    repoId: string,
+    data: { paths: string[]; force?: boolean }
+  ): Promise<RemoveRepoWorktreesResponse> => {
+    const response = await makeRequest(
+      `/api/repos/${repoId}/worktrees/remove`,
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }
+    );
+    return handleApiResponse<RemoveRepoWorktreesResponse>(response);
+  },
+
+  getBobShellConfig: async (
+    repoId: string,
+    scope: BobShellScope
+  ): Promise<BobShellConfigResponse> => {
+    const response = await makeRequest(
+      `/api/repos/${repoId}/bob-shell/config?scope=${encodeURIComponent(scope)}`
+    );
+    return handleApiResponse<BobShellConfigResponse>(response);
+  },
+
+  saveBobShellConfig: async (
+    repoId: string,
+    data: {
+      scope: BobShellScope;
+      files: SaveBobShellConfigFile[];
+    }
+  ): Promise<SaveBobShellConfigResponse> => {
+    const response = await makeRequest(
+      `/api/repos/${repoId}/bob-shell/config`,
+      {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }
+    );
+    return handleApiResponse<SaveBobShellConfigResponse>(response);
   },
 };
 

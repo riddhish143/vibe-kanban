@@ -1,4 +1,8 @@
-use std::path::PathBuf;
+use std::{
+    collections::HashSet,
+    fs,
+    path::{Path as StdPath, PathBuf},
+};
 
 use axum::{
     Router,
@@ -7,9 +11,10 @@ use axum::{
     response::Json as ResponseJson,
     routing::{get, post},
 };
+use chrono::{DateTime, Utc};
 use db::models::repo::{Repo, SearchResult, UpdateRepo};
 use deployment::Deployment;
-use git::{GitBranch, GitRemote};
+use git::{GitBranch, GitCli, GitRemote, GitServiceError};
 use git_host::{GitHostError, GitHostProvider, GitHostService, OpenPrInfo, ProviderKind};
 use serde::{Deserialize, Serialize};
 use services::services::file_search::SearchQuery;
@@ -45,6 +50,273 @@ pub struct InitRepoRequest {
 #[derive(Debug, Deserialize, TS)]
 pub struct BatchRepoRequest {
     pub ids: Vec<Uuid>,
+}
+
+#[derive(Debug, Serialize, TS)]
+#[serde(rename_all = "snake_case")]
+#[ts(rename_all = "snake_case")]
+pub enum RepoWorktreeStatus {
+    Clean,
+    Dirty,
+    Locked,
+}
+
+#[derive(Debug, Serialize, TS)]
+pub struct RepoWorktreeInfo {
+    pub path: String,
+    pub branch: Option<String>,
+    pub status: RepoWorktreeStatus,
+    pub is_primary: bool,
+    #[ts(type = "Date | null")]
+    pub last_activity: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Deserialize, TS)]
+pub struct RemoveRepoWorktreesRequest {
+    pub paths: Vec<String>,
+    #[serde(default)]
+    pub force: bool,
+}
+
+#[derive(Debug, Serialize, TS)]
+pub struct WorktreeRemovalFailure {
+    pub path: String,
+    pub message: String,
+}
+
+#[derive(Debug, Serialize, TS)]
+pub struct RemoveRepoWorktreesResponse {
+    pub removed_paths: Vec<String>,
+    pub failures: Vec<WorktreeRemovalFailure>,
+    pub prune_error: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, TS)]
+#[serde(rename_all = "snake_case")]
+#[ts(rename_all = "snake_case")]
+pub enum BobShellScope {
+    Project,
+    Global,
+}
+
+impl Default for BobShellScope {
+    fn default() -> Self {
+        Self::Project
+    }
+}
+
+#[derive(Debug, Deserialize, TS)]
+pub struct BobShellConfigQuery {
+    pub scope: Option<BobShellScope>,
+}
+
+#[derive(Debug, Serialize, TS)]
+pub struct BobShellConfigFile {
+    pub path: String,
+    pub content: String,
+    pub exists: bool,
+}
+
+#[derive(Debug, Serialize, TS)]
+pub struct BobShellConfigResponse {
+    pub scope: BobShellScope,
+    pub files: Vec<BobShellConfigFile>,
+}
+
+#[derive(Debug, Deserialize, TS)]
+pub struct SaveBobShellConfigRequest {
+    pub scope: BobShellScope,
+    pub files: Vec<SaveBobShellConfigFile>,
+}
+
+#[derive(Debug, Deserialize, TS)]
+pub struct SaveBobShellConfigFile {
+    pub path: String,
+    pub content: String,
+    #[serde(default)]
+    pub delete: bool,
+}
+
+#[derive(Debug, Serialize, TS)]
+pub struct BobShellSaveFailure {
+    pub path: String,
+    pub message: String,
+}
+
+#[derive(Debug, Serialize, TS)]
+pub struct SaveBobShellConfigResponse {
+    pub saved_paths: Vec<String>,
+    pub deleted_paths: Vec<String>,
+    pub failures: Vec<BobShellSaveFailure>,
+}
+
+fn normalized_path(path: &StdPath) -> PathBuf {
+    std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf())
+}
+
+fn is_primary_worktree_path(primary_path: &StdPath, candidate_path: &StdPath) -> bool {
+    normalized_path(primary_path) == normalized_path(candidate_path)
+}
+
+fn parse_last_activity(raw: &str) -> Option<DateTime<Utc>> {
+    DateTime::parse_from_rfc3339(raw.trim())
+        .ok()
+        .map(|dt| dt.with_timezone(&Utc))
+}
+
+fn sanitize_relative_path(path: &str) -> Option<String> {
+    let path = path.trim();
+    if path.is_empty() {
+        return None;
+    }
+
+    let std_path = StdPath::new(path);
+    if std_path.is_absolute() {
+        return None;
+    }
+
+    let mut parts = Vec::new();
+    for component in std_path.components() {
+        match component {
+            std::path::Component::Normal(part) => {
+                parts.push(part.to_string_lossy().to_string());
+            }
+            std::path::Component::CurDir => {}
+            _ => return None,
+        }
+    }
+
+    if parts.is_empty() {
+        None
+    } else {
+        Some(parts.join("/"))
+    }
+}
+
+fn is_allowed_bob_file(scope: BobShellScope, rel_path: &str) -> bool {
+    match scope {
+        BobShellScope::Project => {
+            rel_path == ".bob/settings.json"
+                || rel_path == ".bob/custom_modes.yaml"
+                || rel_path == ".bobignore"
+                || rel_path == ".bobrules"
+                || rel_path == ".bobrules-code"
+                || rel_path.starts_with(".bob/rules/")
+                || rel_path.starts_with(".bob/rules-code/")
+                || rel_path.starts_with(".bob/rules-plan/")
+                || rel_path.starts_with(".bob/rules-")
+        }
+        BobShellScope::Global => {
+            rel_path == "settings.json"
+                || rel_path == "custom_modes.yaml"
+                || rel_path.starts_with("rules/")
+        }
+    }
+}
+
+fn bob_scope_root(repo_root: &StdPath, scope: BobShellScope) -> Result<PathBuf, ApiError> {
+    match scope {
+        BobShellScope::Project => Ok(repo_root.to_path_buf()),
+        BobShellScope::Global => {
+            let home = home_dir_path()
+                .ok_or_else(|| ApiError::BadRequest("Home directory not found".to_string()))?;
+            Ok(home.join(".bob"))
+        }
+    }
+}
+
+fn home_dir_path() -> Option<PathBuf> {
+    std::env::var_os("HOME")
+        .filter(|home| !home.is_empty())
+        .map(PathBuf::from)
+        .or_else(|| {
+            std::env::var_os("USERPROFILE")
+                .filter(|home| !home.is_empty())
+                .map(PathBuf::from)
+        })
+}
+
+fn path_to_slash(path: &StdPath) -> String {
+    path.components()
+        .filter_map(|component| match component {
+            std::path::Component::Normal(part) => Some(part.to_string_lossy().to_string()),
+            _ => None,
+        })
+        .collect::<Vec<_>>()
+        .join("/")
+}
+
+fn read_text_file_lossy(path: &StdPath) -> Option<String> {
+    fs::read(path)
+        .ok()
+        .map(|bytes| String::from_utf8_lossy(&bytes).to_string())
+}
+
+fn collect_files_recursive(base_dir: &StdPath, rel_dir: &str, out: &mut Vec<String>) {
+    let start = base_dir.join(rel_dir);
+    if !start.exists() || !start.is_dir() {
+        return;
+    }
+
+    let mut stack = vec![start];
+    while let Some(current) = stack.pop() {
+        let Ok(entries) = fs::read_dir(&current) else {
+            continue;
+        };
+
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                stack.push(path);
+            } else if path.is_file()
+                && let Ok(relative) = path.strip_prefix(base_dir)
+            {
+                out.push(path_to_slash(relative));
+            }
+        }
+    }
+}
+
+fn gather_bob_config_paths(root: &StdPath, scope: BobShellScope) -> Vec<String> {
+    let mut paths = match scope {
+        BobShellScope::Project => vec![
+            ".bob/settings.json".to_string(),
+            ".bob/custom_modes.yaml".to_string(),
+            ".bobignore".to_string(),
+            ".bobrules".to_string(),
+            ".bobrules-code".to_string(),
+        ],
+        BobShellScope::Global => vec!["settings.json".to_string(), "custom_modes.yaml".to_string()],
+    };
+
+    match scope {
+        BobShellScope::Project => {
+            collect_files_recursive(root, ".bob/rules", &mut paths);
+            collect_files_recursive(root, ".bob/rules-code", &mut paths);
+            collect_files_recursive(root, ".bob/rules-plan", &mut paths);
+
+            let bob_dir = root.join(".bob");
+            if let Ok(entries) = fs::read_dir(bob_dir) {
+                for entry in entries.flatten() {
+                    let path = entry.path();
+                    let Some(name) = path.file_name().and_then(|n| n.to_str()) else {
+                        continue;
+                    };
+                    if name.starts_with("rules-") && path.is_dir() {
+                        collect_files_recursive(root, &format!(".bob/{name}"), &mut paths);
+                    }
+                }
+            }
+        }
+        BobShellScope::Global => {
+            collect_files_recursive(root, "rules", &mut paths);
+        }
+    }
+
+    let mut uniq = HashSet::new();
+    paths.retain(|p| uniq.insert(p.clone()));
+    paths.sort();
+    paths
 }
 
 pub async fn register_repo(
@@ -137,6 +409,234 @@ pub async fn get_repo(
         .get_by_id(&deployment.db().pool, repo_id)
         .await?;
     Ok(ResponseJson(ApiResponse::success(repo)))
+}
+
+pub async fn list_repo_worktrees(
+    State(deployment): State<DeploymentImpl>,
+    Path(repo_id): Path<Uuid>,
+) -> Result<ResponseJson<ApiResponse<Vec<RepoWorktreeInfo>>>, ApiError> {
+    let repo = deployment
+        .repo()
+        .get_by_id(&deployment.db().pool, repo_id)
+        .await?;
+
+    let git_cli = GitCli::new();
+    let worktrees = git_cli
+        .list_worktrees(&repo.path)
+        .map_err(|err| ApiError::GitService(GitServiceError::InvalidRepository(err.to_string())))?;
+
+    let worktree_infos = worktrees
+        .into_iter()
+        .map(|worktree| {
+            let worktree_path = PathBuf::from(&worktree.path);
+            let is_primary = is_primary_worktree_path(&repo.path, &worktree_path);
+
+            let status = if worktree.is_locked {
+                RepoWorktreeStatus::Locked
+            } else {
+                match git_cli.has_changes(&worktree_path) {
+                    Ok(true) => RepoWorktreeStatus::Dirty,
+                    Ok(false) => RepoWorktreeStatus::Clean,
+                    Err(_) => RepoWorktreeStatus::Locked,
+                }
+            };
+
+            let last_activity = git_cli
+                .git(&worktree_path, ["log", "-1", "--format=%cI"])
+                .ok()
+                .and_then(|timestamp| parse_last_activity(&timestamp));
+
+            RepoWorktreeInfo {
+                path: worktree.path,
+                branch: worktree.branch,
+                status,
+                is_primary,
+                last_activity,
+            }
+        })
+        .collect();
+
+    Ok(ResponseJson(ApiResponse::success(worktree_infos)))
+}
+
+pub async fn remove_repo_worktrees(
+    State(deployment): State<DeploymentImpl>,
+    Path(repo_id): Path<Uuid>,
+    ResponseJson(payload): ResponseJson<RemoveRepoWorktreesRequest>,
+) -> Result<ResponseJson<ApiResponse<RemoveRepoWorktreesResponse>>, ApiError> {
+    let repo = deployment
+        .repo()
+        .get_by_id(&deployment.db().pool, repo_id)
+        .await?;
+
+    let requested_paths: Vec<String> = payload
+        .paths
+        .into_iter()
+        .map(|path| path.trim().to_string())
+        .filter(|path| !path.is_empty())
+        .collect();
+
+    if requested_paths.is_empty() {
+        return Ok(ResponseJson(ApiResponse::error(
+            "At least one worktree path is required",
+        )));
+    }
+
+    let git_cli = GitCli::new();
+    let mut removed_paths = Vec::new();
+    let mut failures = Vec::new();
+    let mut seen = HashSet::new();
+
+    for path in requested_paths {
+        if !seen.insert(path.clone()) {
+            continue;
+        }
+
+        let worktree_path = PathBuf::from(&path);
+        if is_primary_worktree_path(&repo.path, &worktree_path) {
+            failures.push(WorktreeRemovalFailure {
+                path,
+                message: "Primary worktree cannot be removed".to_string(),
+            });
+            continue;
+        }
+
+        match git_cli.worktree_remove(&repo.path, &worktree_path, payload.force) {
+            Ok(()) => removed_paths.push(path),
+            Err(err) => failures.push(WorktreeRemovalFailure {
+                path,
+                message: err.to_string(),
+            }),
+        }
+    }
+
+    let prune_error = if removed_paths.is_empty() {
+        None
+    } else {
+        git_cli
+            .worktree_prune(&repo.path)
+            .err()
+            .map(|err| err.to_string())
+    };
+
+    Ok(ResponseJson(ApiResponse::success(
+        RemoveRepoWorktreesResponse {
+            removed_paths,
+            failures,
+            prune_error,
+        },
+    )))
+}
+
+pub async fn get_repo_bob_shell_config(
+    State(deployment): State<DeploymentImpl>,
+    Path(repo_id): Path<Uuid>,
+    Query(query): Query<BobShellConfigQuery>,
+) -> Result<ResponseJson<ApiResponse<BobShellConfigResponse>>, ApiError> {
+    let repo = deployment
+        .repo()
+        .get_by_id(&deployment.db().pool, repo_id)
+        .await?;
+    let scope = query.scope.unwrap_or_default();
+    let root = bob_scope_root(&repo.path, scope)?;
+
+    let files = gather_bob_config_paths(&root, scope)
+        .into_iter()
+        .filter(|path| is_allowed_bob_file(scope, path))
+        .map(|path| {
+            let abs_path = root.join(&path);
+            let exists = abs_path.is_file();
+            let content = read_text_file_lossy(&abs_path).unwrap_or_default();
+            BobShellConfigFile {
+                path,
+                content,
+                exists,
+            }
+        })
+        .collect();
+
+    Ok(ResponseJson(ApiResponse::success(BobShellConfigResponse {
+        scope,
+        files,
+    })))
+}
+
+pub async fn save_repo_bob_shell_config(
+    State(deployment): State<DeploymentImpl>,
+    Path(repo_id): Path<Uuid>,
+    ResponseJson(payload): ResponseJson<SaveBobShellConfigRequest>,
+) -> Result<ResponseJson<ApiResponse<SaveBobShellConfigResponse>>, ApiError> {
+    let repo = deployment
+        .repo()
+        .get_by_id(&deployment.db().pool, repo_id)
+        .await?;
+
+    let root = bob_scope_root(&repo.path, payload.scope)?;
+    let mut seen = HashSet::new();
+    let mut saved_paths = Vec::new();
+    let mut deleted_paths = Vec::new();
+    let mut failures = Vec::new();
+
+    for file in payload.files {
+        let Some(rel_path) = sanitize_relative_path(&file.path) else {
+            failures.push(BobShellSaveFailure {
+                path: file.path,
+                message: "Invalid relative path".to_string(),
+            });
+            continue;
+        };
+
+        if !seen.insert(rel_path.clone()) {
+            continue;
+        }
+
+        if !is_allowed_bob_file(payload.scope, &rel_path) {
+            failures.push(BobShellSaveFailure {
+                path: rel_path,
+                message: "Path is not allowed for Bob Shell configuration".to_string(),
+            });
+            continue;
+        }
+
+        let abs_path = root.join(&rel_path);
+        if file.delete {
+            match fs::remove_file(&abs_path) {
+                Ok(()) => deleted_paths.push(rel_path),
+                Err(err) if err.kind() == std::io::ErrorKind::NotFound => {}
+                Err(err) => failures.push(BobShellSaveFailure {
+                    path: rel_path,
+                    message: err.to_string(),
+                }),
+            }
+            continue;
+        }
+
+        if let Some(parent) = abs_path.parent()
+            && let Err(err) = fs::create_dir_all(parent)
+        {
+            failures.push(BobShellSaveFailure {
+                path: rel_path,
+                message: err.to_string(),
+            });
+            continue;
+        }
+
+        match fs::write(&abs_path, file.content) {
+            Ok(()) => saved_paths.push(rel_path),
+            Err(err) => failures.push(BobShellSaveFailure {
+                path: rel_path,
+                message: err.to_string(),
+            }),
+        }
+    }
+
+    Ok(ResponseJson(ApiResponse::success(
+        SaveBobShellConfigResponse {
+            saved_paths,
+            deleted_paths,
+            failures,
+        },
+    )))
 }
 
 pub async fn update_repo(
@@ -338,6 +838,15 @@ pub fn router() -> Router<DeploymentImpl> {
         .route("/repos/{repo_id}/branches", get(get_repo_branches))
         .route("/repos/{repo_id}/remotes", get(get_repo_remotes))
         .route("/repos/{repo_id}/prs", get(list_open_prs))
+        .route("/repos/{repo_id}/worktrees", get(list_repo_worktrees))
+        .route(
+            "/repos/{repo_id}/worktrees/remove",
+            post(remove_repo_worktrees),
+        )
+        .route(
+            "/repos/{repo_id}/bob-shell/config",
+            get(get_repo_bob_shell_config).put(save_repo_bob_shell_config),
+        )
         .route("/repos/{repo_id}/search", get(search_repo))
         .route("/repos/{repo_id}/open-editor", post(open_repo_in_editor))
 }

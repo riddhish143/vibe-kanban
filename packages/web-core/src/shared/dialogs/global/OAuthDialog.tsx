@@ -314,6 +314,7 @@ const OAuthDialogImpl = create<OAuthDialogProps>(({ initialProvider }) => {
 
   return (
     <Dialog
+      className="my-auto"
       open={modal.visible}
       onOpenChange={(open) => {
         if (!open) {

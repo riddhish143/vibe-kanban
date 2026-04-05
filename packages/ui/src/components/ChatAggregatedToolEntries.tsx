@@ -91,8 +91,26 @@ export function ChatAggregatedToolEntries({
     undefined
   );
 
+  const isSuccess =
+    aggregateStatus?.status === 'success' &&
+    entries.every((e) => e.status?.status === 'success');
+  const isError =
+    aggregateStatus?.status === 'failed' ||
+    aggregateStatus?.status === 'denied' ||
+    aggregateStatus?.status === 'timed_out';
+
   return (
-    <div className={cn('motion-safe:animate-chat-slide-in', 'flex flex-col', className)}>
+    <div
+      className={cn(
+        'motion-safe:animate-chat-slide-in',
+        'flex flex-col',
+        'border rounded-sm px-double py-base',
+        isSuccess && 'border-success/50 bg-success/5',
+        isError && 'border-error/50 bg-error/5',
+        !isSuccess && !isError && 'border-transparent',
+        className
+      )}
+    >
       {/* Header row - clickable to expand/collapse */}
       <div
         className="flex items-center gap-base text-sm text-low cursor-pointer group"

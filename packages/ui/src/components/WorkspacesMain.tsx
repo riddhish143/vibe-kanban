@@ -71,7 +71,7 @@ export function WorkspacesMain({
         </div>
       )}
       {/* Chat box - always rendered to prevent flash during workspace switch */}
-      <div className="flex justify-center @container pl-px">
+      <div className="flex justify-center @container pl-px pb-4">
         {chatBoxContent}
       </div>
       {/* Context Bar - floating toolbar */}
