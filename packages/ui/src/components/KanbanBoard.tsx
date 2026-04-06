@@ -143,10 +143,11 @@ export const KanbanCard = ({
         return (
           <Card
             className={cn(
-              'kanban-card-premium-hover mb-3 flex-col overflow-hidden rounded-[22px] border border-border/60 bg-background/90 text-foreground shadow-sm outline-none transition-[box-shadow,border-color,background-color,opacity] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]',
+              'kanban-card-premium-hover mx-2 mb-3 flex flex-col overflow-hidden rounded-[22px] border border-border/60 bg-background/90 text-foreground shadow-sm outline-none transition-[box-shadow,border-color,background-color,opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]',
               snapshot.isDragging &&
-                'cursor-grabbing border-brand/40 shadow-2xl',
-              isOpen && 'border-brand/40 ring-1 ring-brand/30',
+                'cursor-grabbing border-brand/40 shadow-2xl scale-[1.02] z-50',
+              isOpen && 'border-brand/40 ring-1 ring-brand/30 scale-[1.012] shadow-md z-10',
+              'focus-visible:ring-2 focus-visible:ring-brand/40 focus-visible:scale-[1.01]',
               className
             )}
             ref={setRefs}
@@ -351,7 +352,7 @@ export const KanbanProvider = ({
     <DragDropContext onDragEnd={onDragEnd}>
       <div
         className={cn(
-          'kanban-provider inline-grid min-h-full grid-flow-col auto-cols-[minmax(280px,380px)] items-stretch gap-6 pb-3',
+          'kanban-provider inline-grid min-h-full grid-flow-col auto-cols-[minmax(280px,380px)] items-stretch gap-3 pb-3',
           className
         )}
       >

@@ -296,6 +296,7 @@ export function KanbanFilterBar<
                 )}
                 actionIcon={DownloadSimpleIcon}
                 onClick={() => onImportIssues()}
+                className="!text-sm !font-normal"
               />
               <PrimaryButton
                 variant="secondary"
@@ -303,6 +304,7 @@ export function KanbanFilterBar<
                 actionIcon={PlusIcon}
                 onClick={() => onCreateIssue()}
                 className={cn(
+                  '!text-sm !font-normal',
                   shouldAnimateCreateButton && 'create-issue-attention'
                 )}
               />

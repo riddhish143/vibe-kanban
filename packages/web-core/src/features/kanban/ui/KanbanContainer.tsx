@@ -43,7 +43,6 @@ import {
   KanbanHeader,
   type DropResult,
 } from '@vibe/ui/components/KanbanBoard';
-import { KanbanBadge } from '@vibe/ui/components/KanbanBadge';
 import { KanbanCardContent } from '@vibe/ui/components/KanbanCardContent';
 import {
   IssueWorkspaceCard,
@@ -1100,39 +1099,44 @@ export function KanbanContainer() {
                 return (
                   <KanbanBoard key={status.id}>
                     <KanbanHeader>
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex min-w-0 items-center gap-base">
-                          <div
-                            className="h-2.5 w-2.5 rounded-full shrink-0"
-                            style={{ backgroundColor: `hsl(${status.color})` }}
-                          />
-                          <p className="m-0 truncate text-sm font-semibold tracking-tight text-normal">
-                            {status.name}
-                          </p>
-                          <KanbanBadge
-                            name={String(issueIds.length)}
-                            className="kanban-column-count"
-                          />
+                      <div className="flex flex-col gap-3 w-full pb-2">
+                        <div className="flex items-start justify-between w-full px-2">
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="h-2 w-2 rounded-full shrink-0"
+                                style={{ backgroundColor: `hsl(${status.color})` }}
+                              />
+                              <p className="m-0 text-[15px] font-semibold text-normal">
+                                {status.name}
+                              </p>
+                            </div>
+                            <span className="text-xs text-low leading-none pl-4">
+                              {issueIds.length} cards
+                            </span>
+                          </div>
+                          
+                          <div className="flex items-center gap-1">
+                            {issueIds.length > 0 && hasUnselectedIssues && (
+                              <button
+                                type="button"
+                                className="kanban-column-action text-xs px-2 py-1 h-auto"
+                                onClick={() => handleSelectAllIssuesForStatus(status.id)}
+                              >
+                                {t('kanban.selectAll')}
+                              </button>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex items-center gap-1.5">
-                          {issueIds.length > 0 && hasUnselectedIssues && (
-                            <button
-                              type="button"
-                              className="kanban-column-action"
-                              onClick={() =>
-                                handleSelectAllIssuesForStatus(status.id)
-                              }
-                            >
-                              {t('kanban.selectAll')}
-                            </button>
-                          )}
+                        
+                        <div className="w-full">
                           <button
                             type="button"
                             onClick={() => handleAddTask(status.id)}
-                            className="kanban-column-icon-button"
+                            className="w-full h-9 flex items-center justify-center rounded-xl border border-transparent bg-secondary/60 hover:bg-secondary text-low hover:text-normal transition-colors"
                             aria-label={t('kanban.createNewIssue')}
                           >
-                            <PlusIcon className="size-icon-xs" weight="bold" />
+                            <PlusIcon className="w-4 h-4" weight="bold" />
                           </button>
                         </div>
                       </div>

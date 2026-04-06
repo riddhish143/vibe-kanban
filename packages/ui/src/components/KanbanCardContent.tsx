@@ -13,7 +13,6 @@ import { cn } from '../lib/cn';
 import { PriorityIcon, type PriorityLevel } from './PriorityIcon';
 import { KanbanBadge } from './KanbanBadge';
 import { KanbanAssignee, type KanbanAssigneeUser } from './KanbanAssignee';
-import { RunningDots } from './RunningDots';
 import { PrBadge, type PrBadgeStatus } from './PrBadge';
 import { Checkbox } from './Checkbox';
 import {
@@ -186,7 +185,6 @@ export function KanbanCardContent<TTag extends KanbanTag = KanbanTag>({
   creator,
   pullRequests = [],
   relationships = [],
-  isLoading = false,
   className,
   onPriorityClick,
   onAssigneeClick,
@@ -293,17 +291,44 @@ export function KanbanCardContent<TTag extends KanbanTag = KanbanTag>({
   ) : null;
 
   return (
-    <div className={cn('flex flex-col gap-3 min-w-0 p-3.5', className)}>
-      {/* Top Meta Row (Added Date + Actions) */}
+    <div className={cn('flex flex-col gap-2 min-w-0 p-4', className)}>
+      {/* Top Row: Tags + Priority (and More Actions on right) */}
       <div className="flex items-start justify-between">
-        {addedLabel ? (
-          <span className="text-xs text-low">{addedLabel}</span>
-        ) : (
-          <span /> // Spacer
-        )}
+        <div className="flex flex-wrap items-center gap-1.5 min-w-0 flex-1">
+          {tagEditProps ? (
+            (tagEditProps.renderTagEditor?.({
+              allTags: tagEditProps.allTags,
+              selectedTagIds: tagEditProps.selectedTagIds,
+              onTagToggle: tagEditProps.onTagToggle,
+              onCreateTag: tagEditProps.onCreateTag,
+              onDeleteTag: tagEditProps.onDeleteTag,
+              trigger: tagEditorTrigger,
+            }) ?? tagEditorTrigger)
+          ) : (
+            tagsDisplay
+          )}
+          {onPriorityClick ? (
+            <button
+              type="button"
+              onClick={onPriorityClick}
+              onMouseDown={(e) => e.stopPropagation()}
+              className="flex items-center cursor-pointer hover:bg-secondary rounded-sm transition-colors ml-1"
+            >
+              <PriorityIcon priority={priority} />
+              {!priority && (
+                <CircleDashedIcon
+                  className="size-icon-xs text-low"
+                  weight="bold"
+                />
+              )}
+            </button>
+          ) : (
+            <div className="ml-1"><PriorityIcon priority={priority} /></div>
+          )}
+        </div>
         
         {(onMoreActionsClick || onExplainClick) && (
-          <div className="flex items-center gap-1 shrink-0">
+          <div className="flex items-center gap-1 shrink-0 ml-2">
             {onExplainClick && (
               <button
                 type="button"
@@ -344,8 +369,8 @@ export function KanbanCardContent<TTag extends KanbanTag = KanbanTag>({
         )}
       </div>
 
-      {/* Title & Selection */}
-      <div className="flex items-start gap-2 min-w-0 -mt-1">
+      {/* Title */}
+      <div className="flex items-start gap-2 min-w-0">
         {onSelectionChange && (
           <div
             className="flex shrink-0 items-center mt-1"
@@ -365,222 +390,150 @@ export function KanbanCardContent<TTag extends KanbanTag = KanbanTag>({
         </span>
       </div>
 
-      {/* Inner Bubble / Comment Box (Only show if there is description or assignees) */}
-      {(previewDescription || assignees.length > 0) && (
-        <div className="flex flex-col gap-2 bg-secondary dark:bg-[#2a2a2a] rounded-lg p-3">
-          {/* Header of bubble: Assignee & Priority */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              {creatorAvatar ? (
-                creatorAvatar
-              ) : onAssigneeClick ? (
-                <button
-                  type="button"
-                  onClick={onAssigneeClick}
-                  onMouseDown={(e) => e.stopPropagation()}
-                  className="cursor-pointer hover:bg-secondary rounded-sm transition-colors"
-                >
-                  <KanbanAssignee assignees={assignees} />
-                </button>
-              ) : (
-                <KanbanAssignee assignees={assignees} />
-              )}
-              {creatorName ? (
-                <span className="text-sm font-medium text-normal">
-                  {creatorName}
-                </span>
-              ) : assignees.length > 0 ? (
-                <span className="text-sm font-medium text-normal">
-                  {[assignees[0].first_name, assignees[0].last_name]
-                    .filter(Boolean)
-                    .join(' ') ||
-                    assignees[0].username ||
-                    'User'}
-                </span>
-              ) : null}
-            </div>
+      {/* Description */}
+      {previewDescription && (
+        <p className="text-xs text-low leading-relaxed line-clamp-2 m-0 mt-0.5">
+          {previewDescription}
+        </p>
+      )}
 
-            {/* Display ID in bubble top right */}
-            <div className="flex items-center gap-1 shrink-0">
-              {isLoading && <RunningDots />}
-              {issueLink ? (
-                <TooltipProvider delayDuration={0}>
-                  <HoverPreview>
-                    <TooltipTrigger asChild>
-                      <a
-                        href={issueLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="font-ibm-plex-mono text-xs text-low hover:text-normal hover:underline transition-colors"
-                        onClick={(e) => e.stopPropagation()}
-                        onMouseDown={(e) => e.stopPropagation()}
-                      >
+      {/* Footer: Assignees, Added, Links, PRs */}
+      <div className="flex items-center justify-between mt-2 pt-3 border-t border-border/40">
+        <div className="flex items-center gap-2">
+           {creatorAvatar ? (
+             creatorAvatar
+           ) : onAssigneeClick ? (
+             <button
+               type="button"
+               onClick={onAssigneeClick}
+               onMouseDown={(e) => e.stopPropagation()}
+               className="cursor-pointer hover:bg-secondary rounded-sm transition-colors"
+             >
+               <KanbanAssignee assignees={assignees} />
+             </button>
+           ) : (
+             <KanbanAssignee assignees={assignees} />
+           )}
+        </div>
+        
+        <div className="flex items-center gap-2 flex-wrap min-w-0">
+           {addedLabel && (
+             <span className="text-[11px] font-medium text-low shrink-0">{addedLabel}</span>
+           )}
+           {issueLink ? (
+             <TooltipProvider delayDuration={0}>
+               <HoverPreview>
+                 <TooltipTrigger asChild>
+                   <a
+                     href={issueLink}
+                     target="_blank"
+                     rel="noopener noreferrer"
+                     className="font-ibm-plex-mono text-[11px] text-low hover:text-normal hover:underline transition-colors shrink-0"
+                     onClick={(e) => e.stopPropagation()}
+                     onMouseDown={(e) => e.stopPropagation()}
+                   >
+                     {fallbackDisplayId}
+                   </a>
+                 </TooltipTrigger>
+                 <TooltipContent
+                  side="top"
+                  align="end"
+                  sideOffset={8}
+                  className="w-[320px] rounded-xl border border-border/70 bg-background/95 p-0 shadow-2xl backdrop-blur-md"
+                 >
+                    <div className="flex items-center justify-between border-b border-border/70 px-3 py-2">
+                      <span className="font-ibm-plex-mono text-[11px] text-low">
                         {fallbackDisplayId}
-                      </a>
-                    </TooltipTrigger>
-                    <TooltipContent
-                      side="top"
-                      align="end"
-                      sideOffset={8}
-                      className="w-[320px] rounded-xl border border-border/70 bg-background/95 p-0 shadow-2xl backdrop-blur-md"
-                    >
-                      <div className="flex items-center justify-between border-b border-border/70 px-3 py-2">
-                        <span className="font-ibm-plex-mono text-[11px] text-low">
-                          {fallbackDisplayId}
-                        </span>
-                        <span className="text-[11px] text-low">
-                          GitHub preview
-                        </span>
-                      </div>
-                      <div className="flex flex-col gap-3 p-3">
-                        {issuePreviewCreatorName && (
-                          <div className="flex items-center gap-2">
-                            <div className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-secondary text-[11px] font-medium text-low">
-                              {issuePreview?.creator?.avatarUrl ? (
-                                <img
-                                  src={issuePreview.creator.avatarUrl}
-                                  alt={issuePreviewCreatorName}
-                                  className="h-full w-full object-cover"
-                                  loading="lazy"
-                                  onError={(event) => {
-                                    const img = event.currentTarget;
-                                    img.style.display = 'none';
-                                    const fallback = img.nextElementSibling;
-                                    if (fallback instanceof HTMLElement) {
-                                      fallback.style.display = 'flex';
-                                    }
-                                  }}
-                                />
-                              ) : null}
-                              <span
-                                style={
-                                  issuePreview?.creator?.avatarUrl
-                                    ? { display: 'none' }
-                                    : undefined
-                                }
-                              >
-                                {issuePreviewCreatorName.charAt(0).toUpperCase()}
-                              </span>
-                            </div>
-                            <span className="text-sm font-medium text-normal">
-                              {issuePreviewCreatorName}
+                      </span>
+                      <span className="text-[11px] text-low">
+                        GitHub preview
+                      </span>
+                    </div>
+                    <div className="flex flex-col gap-3 p-3">
+                      {issuePreviewCreatorName && (
+                        <div className="flex items-center gap-2">
+                          <div className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-secondary text-[11px] font-medium text-low">
+                            {issuePreview?.creator?.avatarUrl ? (
+                              <img
+                                src={issuePreview.creator.avatarUrl}
+                                alt={issuePreviewCreatorName}
+                                className="h-full w-full object-cover"
+                                loading="lazy"
+                                onError={(event) => {
+                                  const img = event.currentTarget;
+                                  img.style.display = 'none';
+                                  const fallback = img.nextElementSibling;
+                                  if (fallback instanceof HTMLElement) {
+                                    fallback.style.display = 'flex';
+                                  }
+                                }}
+                              />
+                            ) : null}
+                            <span
+                              style={
+                                issuePreview?.creator?.avatarUrl
+                                  ? { display: 'none' }
+                                  : undefined
+                              }
+                            >
+                              {issuePreviewCreatorName.charAt(0).toUpperCase()}
                             </span>
                           </div>
-                        )}
-                        <div className="space-y-2">
-                          <p className="text-sm font-medium leading-snug text-normal">
-                            {issuePreview?.title ?? title}
-                          </p>
-                          {issuePreviewDescription ? (
-                            <p className="line-clamp-5 text-xs leading-relaxed text-low">
-                              {issuePreviewDescription}
-                            </p>
-                          ) : (
-                            <div className="rounded-md border border-dashed border-border/70 bg-secondary/20 px-3 py-2 text-xs text-low">
-                              Preview available from imported metadata.
-                            </div>
-                          )}
+                          <span className="text-sm font-medium text-normal">
+                            {issuePreviewCreatorName}
+                          </span>
                         </div>
+                      )}
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium leading-snug text-normal">
+                          {issuePreview?.title ?? title}
+                        </p>
+                        {issuePreviewDescription ? (
+                          <p className="line-clamp-5 text-xs leading-relaxed text-low">
+                            {issuePreviewDescription}
+                          </p>
+                        ) : (
+                          <div className="rounded-md border border-dashed border-border/70 bg-secondary/20 px-3 py-2 text-xs text-low">
+                            Preview available from imported metadata.
+                          </div>
+                        )}
                       </div>
-                    </TooltipContent>
-                  </HoverPreview>
-                </TooltipProvider>
-              ) : (
-                <span className="font-ibm-plex-mono text-xs text-low">
-                  {fallbackDisplayId}
-                </span>
-              )}
-
-              {/* Priority Icon inline */}
-              {onPriorityClick ? (
-                <button
-                  type="button"
-                  onClick={onPriorityClick}
-                  onMouseDown={(e) => e.stopPropagation()}
-                  className="flex items-center cursor-pointer hover:bg-secondary rounded-sm transition-colors ml-1"
-                >
-                  <PriorityIcon priority={priority} />
-                  {!priority && (
-                    <CircleDashedIcon
-                      className="size-icon-xs text-low"
-                      weight="bold"
-                    />
-                  )}
-                </button>
-              ) : (
-                <div className="ml-1"><PriorityIcon priority={priority} /></div>
-              )}
-            </div>
-          </div>
-
-          {/* Description Body */}
-          {previewDescription && (
-            <p
-              className={cn(
-                'text-sm text-low m-0',
-                isMobile
-                  ? 'leading-tight line-clamp-3'
-                  : 'leading-relaxed line-clamp-5'
-              )}
-            >
-              {previewDescription}
-            </p>
-          )}
-
+                    </div>
+                 </TooltipContent>
+               </HoverPreview>
+             </TooltipProvider>
+           ) : (
+             <span className="font-ibm-plex-mono text-[11px] text-low shrink-0">
+               {fallbackDisplayId}
+             </span>
+           )}
+           
+           {pullRequests.slice(0, 2).map((pr) => (
+             <PrBadge
+               key={pr.id}
+               number={pr.number}
+               url={pr.url}
+               status={pr.status}
+             />
+           ))}
+           {pullRequests.length > 2 && (
+             <span className="text-xs text-low">+{pullRequests.length - 2}</span>
+           )}
+           {relationships.slice(0, 2).map((rel) => (
+             <RelationshipBadge
+               key={rel.relationshipId}
+               displayType={rel.displayType}
+               relatedIssueDisplayId={rel.relatedIssueDisplayId}
+               compact
+             />
+           ))}
+           {relationships.length > 2 && (
+             <span className="text-xs text-low">
+               +{relationships.length - 2}
+             </span>
+           )}
         </div>
-      )}
-
-      {/* Row: Tags, PRs, Relationships */}
-      {(tags.length > 0 ||
-        tagEditProps ||
-        pullRequests.length > 0 ||
-        relationships.length > 0) && (
-        <div className="flex items-center gap-2 flex-wrap min-w-0 mt-1">
-          {tagEditProps ? (
-            (tagEditProps.renderTagEditor?.({
-              allTags: tagEditProps.allTags,
-              selectedTagIds: tagEditProps.selectedTagIds,
-              onTagToggle: tagEditProps.onTagToggle,
-              onCreateTag: tagEditProps.onCreateTag,
-              onDeleteTag: tagEditProps.onDeleteTag,
-              trigger: tagEditorTrigger,
-            }) ?? tagEditorTrigger)
-          ) : (
-            <>
-              {tags.slice(0, 2).map((tag) => (
-                <KanbanBadge key={tag.id} name={tag.name} color={tag.color} />
-              ))}
-              {tags.length > 2 && (
-                <span className="text-sm text-low">+{tags.length - 2}</span>
-              )}
-            </>
-          )}
-          {pullRequests.slice(0, 2).map((pr) => (
-            <PrBadge
-              key={pr.id}
-              number={pr.number}
-              url={pr.url}
-              status={pr.status}
-            />
-          ))}
-          {pullRequests.length > 2 && (
-            <span className="text-xs text-low">+{pullRequests.length - 2}</span>
-          )}
-          {relationships.slice(0, 2).map((rel) => (
-            <RelationshipBadge
-              key={rel.relationshipId}
-              displayType={rel.displayType}
-              relatedIssueDisplayId={rel.relatedIssueDisplayId}
-              compact
-            />
-          ))}
-          {relationships.length > 2 && (
-            <span className="text-xs text-low">
-              +{relationships.length - 2}
-            </span>
-          )}
-        </div>
-      )}
+      </div>
     </div>
   );
 }

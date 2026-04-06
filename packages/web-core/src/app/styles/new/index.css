@@ -37,7 +37,7 @@ html {
     --_border: 0 0% 85%;
     --_input: 0 0% 96%;
     --_ring: 0 0% 5%;
-    --_radius: 0.125rem;
+    --_radius: 0.75rem;
 
     /* Status (light) */
     --_success: 117 38% 50%;
@@ -663,7 +663,7 @@ html {
 
   .app-surface-card {
     border: 1px solid hsl(var(--border) / 0.72);
-    border-radius: 1.25rem;
+    border-radius: var(--radius);
     box-shadow:
       0 24px 44px -34px hsl(var(--foreground) / 0.4),
       inset 0 1px 0 hsl(0 0% 100% / 0.16);
@@ -671,7 +671,7 @@ html {
 
   .app-floating-panel {
     border: 1px solid hsl(var(--border) / 0.78);
-    border-radius: 1.35rem;
+    border-radius: var(--radius);
     box-shadow:
       0 34px 68px -34px hsl(var(--foreground) / 0.52),
       inset 0 1px 0 hsl(0 0% 100% / 0.18);
@@ -686,7 +686,7 @@ html {
 
   .app-control {
     @apply inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium;
-    border-radius: 0.95rem;
+    border-radius: var(--radius);
     border: 1px solid hsl(var(--border) / 0.74);
     background: linear-gradient(
       180deg,
@@ -804,7 +804,7 @@ html {
 
   .app-input-surface {
     @apply w-full text-sm;
-    border-radius: 0.95rem;
+    border-radius: var(--radius);
     border: 1px solid hsl(var(--border) / 0.74);
     background: linear-gradient(
       180deg,
@@ -841,7 +841,7 @@ html {
 
   .app-input-wrapper {
     @apply flex items-center gap-base;
-    border-radius: 0.95rem;
+    border-radius: var(--radius);
     border: 1px solid hsl(var(--border) / 0.74);
     background: linear-gradient(
       180deg,
@@ -898,7 +898,7 @@ html {
 
   .app-nav-button {
     @apply inline-flex items-center justify-center shrink-0;
-    border-radius: 1rem;
+    border-radius: var(--radius);
     border: 1px solid transparent;
     background: transparent;
     color: hsl(var(--text-low));
@@ -978,7 +978,7 @@ html {
   }
 
   .app-menu-item {
-    border-radius: 0.85rem;
+    border-radius: var(--radius);
     transform: translate3d(0, 0, 0);
     transition:
       background-color 180ms ease,
@@ -1081,109 +1081,30 @@ html {
 
   .kanban-board-column {
     @apply relative isolate overflow-hidden;
-    border-radius: 1.5rem;
-    border: 1px solid hsl(var(--border) / 0.72);
-    background:
-      linear-gradient(
-        180deg,
-        hsl(var(--background) / 0.94),
-        hsl(var(--background) / 0.84)
-      ),
-      linear-gradient(140deg, hsl(var(--foreground) / 0.04), transparent 52%);
-    box-shadow:
-      0 24px 44px -30px hsl(var(--foreground) / 0.34),
-      inset 0 1px 0 hsl(0 0% 100% / 0.18);
-    backdrop-filter: blur(18px);
+    /* Clean subtle column layout */
+    background: hsl(0 0% 0% / 0.015);
+    border: 1px solid hsl(0 0% 0% / 0.04);
+    border-radius: var(--radius);
   }
 
   .dark .kanban-board-column {
-    border-color: hsl(var(--border) / 0.92);
-    background:
-      linear-gradient(
-        180deg,
-        hsl(var(--background) / 0.96),
-        hsl(var(--background) / 0.84)
-      ),
-      linear-gradient(140deg, hsl(var(--brand) / 0.08), transparent 55%);
-    box-shadow:
-      0 24px 52px -34px hsl(0 0% 0% / 0.72),
-      inset 0 1px 0 hsl(0 0% 100% / 0.05);
-  }
-
-  .kanban-board-column::before {
-    content: '';
-    position: absolute;
-    inset: -22% -18% auto;
-    height: 220px;
-    pointer-events: none;
-    background: radial-gradient(
-      circle at top,
-      hsl(var(--brand) / 0.16),
-      transparent 62%
-    );
-    animation: kanban-ambient-pan 16s ease-in-out infinite alternate;
-  }
-
-  .kanban-board-column::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    border: 1px solid hsl(0 0% 100% / 0.14);
-    opacity: 0.7;
-    pointer-events: none;
+    background: hsl(0 0% 100% / 0.015);
+    border: 1.5px solid hsl(0 0% 100% / 0.05);
   }
 
   .kanban-column-header {
-    @apply sticky top-0 z-20 flex shrink-0 items-center gap-base px-4 pt-3.5 pb-5;
-    position: sticky;
-    background:
-      linear-gradient(
-        180deg,
-        hsl(var(--background) / 0.96),
-        hsl(var(--background) / 0.84)
-      ),
-      linear-gradient(135deg, hsl(var(--brand) / 0.08), transparent 52%);
-    border-bottom: 1px solid hsl(var(--border) / 0.8);
-    backdrop-filter: blur(18px);
-  }
-
-  .kanban-column-header::after {
-    content: '';
-    position: absolute;
-    left: 1rem;
-    right: 1rem;
-    bottom: 0.55rem;
-    height: 2px;
-    border-radius: 999px;
-    background: linear-gradient(
-      90deg,
-      hsl(var(--brand) / 0),
-      hsl(var(--brand) / 0.72),
-      hsl(var(--brand) / 0)
-    );
-    opacity: 0;
-    transform: scaleX(0.55);
-    transform-origin: center;
-    transition:
-      opacity 240ms ease,
-      transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
-  }
-
-  .kanban-board-column:hover .kanban-column-header::after,
-  .kanban-column-header:focus-within::after {
-    opacity: 1;
-    transform: scaleX(1);
+    @apply sticky top-0 z-20 flex shrink-0 flex-col items-stretch gap-2 px-1 pt-3 pb-2;
+    background: transparent;
+    border: none;
+    box-shadow: none;
   }
 
   .kanban-column-count {
-    border-color: hsl(var(--border) / 0.58);
-    background: linear-gradient(
-      180deg,
-      hsl(var(--background) / 0.94),
-      hsl(var(--background) / 0.78)
-    );
-    box-shadow: 0 10px 20px -18px hsl(var(--foreground) / 0.42);
+    @apply text-xs font-medium text-low;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding-left: 0.25rem;
   }
 
   .kanban-column-action,
@@ -1264,7 +1185,7 @@ html {
   }
 
   .kanban-dropzone {
-    @apply relative flex flex-1 flex-col gap-3 px-4 pb-4 pt-4;
+    @apply relative flex flex-1 flex-col gap-3 px-1 pb-4 pt-4;
     transition: background-color 180ms ease;
   }
 
@@ -1272,7 +1193,7 @@ html {
     content: '';
     position: absolute;
     inset: 0.8rem 0.8rem 0.9rem;
-    border-radius: 1.2rem;
+    border-radius: var(--radius);
     border: 1px solid hsl(var(--border) / 0.34);
     background: linear-gradient(
       180deg,
@@ -1305,7 +1226,7 @@ html {
   .kanban-empty-state {
     @apply relative flex min-h-[11rem] flex-col items-center justify-center gap-4 overflow-hidden;
     margin-top: 0.35rem;
-    border-radius: 1.25rem;
+    border-radius: var(--radius);
     border: 1px dashed hsl(var(--border) / 0.72);
     background:
       linear-gradient(
@@ -1398,23 +1319,19 @@ html {
   }
 
   .kanban-card-premium-hover {
-    @apply relative;
-    background: linear-gradient(
-      180deg,
-      hsl(var(--background) / 0.96),
-      hsl(var(--background) / 0.86)
-    );
-    box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.24);
+    @apply relative overflow-visible;
+    background: hsl(var(--background));
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.03);
+    border: 1px solid hsl(var(--border) / 0.5);
+    border-radius: var(--radius);
     transform-origin: center center;
+    transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
   }
 
   .kanban-card-surface {
     min-height: 100%;
-    transform: translate3d(0, 0, 0);
-    backface-visibility: hidden;
-    transition:
-      transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
-      filter 180ms ease;
+    border-radius: var(--radius);
+    background: transparent;
   }
 
   .kanban-card-premium-hover::before {
@@ -1425,15 +1342,17 @@ html {
     padding: 1px;
     pointer-events: none;
     background: linear-gradient(
-      135deg,
-      hsl(0 0% 100% / 0.6),
-      hsl(var(--brand) / 0.28),
-      transparent 72%
+      60deg,
+      transparent 15%,
+      hsl(var(--brand) / 0.5) 35%,
+      hsl(var(--brand) / 0.9) 50%,
+      hsl(var(--brand) / 0.5) 65%,
+      transparent 85%
     );
-    opacity: 0.66;
-    transition:
-      opacity 240ms ease,
-      background-position 300ms ease;
+    background-size: 300% 300%;
+    background-position: 0% 50%;
+    opacity: 0.35;
+    transition: opacity 400ms ease;
     -webkit-mask:
       linear-gradient(#fff 0 0) content-box,
       linear-gradient(#fff 0 0);
@@ -1444,74 +1363,51 @@ html {
     mask-composite: exclude;
   }
 
-  .kanban-card-premium-hover::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 260ms ease;
-  }
-
   .kanban-card-premium-hover:hover:not([data-dragging='true']),
   .kanban-card-premium-hover:focus-within:not([data-dragging='true']) {
-    border-color: hsl(var(--brand) / 0.28);
-    box-shadow:
-      inset 0 1px 0 hsl(0 0% 100% / 0.24),
-      0 0 0 1px hsl(var(--brand) / 0.12);
+    border-color: hsl(var(--border) / 0.8);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.04);
   }
 
-  .kanban-card-premium-hover:hover:not([data-dragging='true'])
-    .kanban-card-surface,
-  .kanban-card-premium-hover:focus-within:not([data-dragging='true'])
-    .kanban-card-surface {
-    transform: translate3d(0, -3px, 0) scale(1.006);
+  @keyframes kanbanEdgeLighting {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
   }
 
   .kanban-card-premium-hover:hover::before,
   .kanban-card-premium-hover:focus-within::before {
     opacity: 1;
-  }
-
-  .kanban-card-premium-hover:hover::after,
-  .kanban-card-premium-hover:focus-within::after,
-  .kanban-card-premium-hover[data-open='true']::after,
-  .kanban-card-premium-hover[data-dragging='true']::after {
-    opacity: 1;
+    animation: kanbanEdgeLighting 3s ease-in-out infinite;
   }
 
   .kanban-card-premium-hover[data-open='true'] {
-    border-color: hsl(var(--brand) / 0.4);
-    box-shadow:
-      inset 0 1px 0 hsl(0 0% 100% / 0.24),
-      0 0 0 1px hsl(var(--brand) / 0.14);
+    border-color: hsl(var(--brand) / 0.5);
+    box-shadow: 0 0 0 1px hsl(var(--brand) / 0.15);
   }
 
   .kanban-card-premium-hover[data-dragging='true'] {
-    border-color: hsl(var(--brand) / 0.44);
-    box-shadow:
-      inset 0 1px 0 hsl(0 0% 100% / 0.24),
-      0 0 0 1px hsl(var(--brand) / 0.18);
-  }
-
-  .kanban-card-premium-hover[data-dragging='true'] .kanban-card-surface {
-    transform: translate3d(0, -1px, 0);
-    filter: saturate(1.02);
-  }
-
-  .kanban-card-premium-hover[data-drop-animating='true'] .kanban-card-surface {
-    transform: none;
-    filter: none;
+    border-color: hsl(var(--brand) / 0.4);
+    box-shadow: 0 12px 24px -4px rgba(0, 0, 0, 0.12), 0 4px 8px -2px rgba(0, 0, 0, 0.08);
+    transform: rotate(2deg) scale(1.02);
   }
 
   .dark .kanban-card-premium-hover {
-    background: linear-gradient(
-      180deg,
-      hsl(var(--background) / 0.95),
-      hsl(var(--background) / 0.84)
-    );
-    box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.06);
+    background: hsl(var(--secondary) / 0.4);
+    border: 1px solid hsl(var(--border) / 0.3);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+  }
+
+  .dark .kanban-card-premium-hover:hover:not([data-dragging='true']),
+  .dark .kanban-card-premium-hover:focus-within:not([data-dragging='true']) {
+    border-color: hsl(var(--border) / 0.6);
+    box-shadow: 0 8px 16px -2px rgba(0, 0, 0, 0.3);
   }
 
   @media (prefers-reduced-motion: reduce) {
